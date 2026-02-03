@@ -166,7 +166,8 @@ async function handleMessage(ws, data) {
         console.log(`[${time}] → 发送剪贴板内容: ${clipboardContent.substring(0, 30)}...`);
         break;
         
-      case 'get_current_line':
+
+        case 'get_current_line':
         // 获取当前行内容（复制当前行到剪贴板）
         console.log(`[${time}] 📋 获取当前行`);
         await simulateCopyLine();
