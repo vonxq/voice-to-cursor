@@ -165,26 +165,23 @@ async function handleMessage(ws, data) {
     switch (message.type) {
       case 'sync_text':
         currentText = message.content || '';
-        // 只同步到剪贴板，不自动粘贴
-        await writeClipboard(currentText);
-        console.log(`[${time}] 📝 已同步到剪贴板: ${currentText.substring(0, 50)}${currentText.length > 50 ? '...' : ''}`);
+        // 只保存文本，不写入剪贴板（避免与 paste_only/submit 的剪贴板操作冲突）
+        console.log(`[${time}] 📝 已同步文本: ${currentText.substring(0, 50)}${currentText.length > 50 ? '...' : ''}`);
         ws.send(JSON.stringify({ type: 'ack', action: 'sync_text' }));
         break;
         
       case 'paste_only':
         const pasteNeedAiReply = message.needAiReply === true;
         console.log(`[${time}] 📋 执行粘贴${pasteNeedAiReply ? '（需AI回复）' : ''}`);
-        console.log(`[${time}] 📋 当前 currentText: "${currentText.substring(0, 50)}..."`);
         
-        // 如果需要 AI 回复，先包装 prompt 再写入剪贴板
-        if (pasteNeedAiReply && currentText.trim()) {
-          const wrappedContent = wrapPromptWithSummaryRequest(currentText);
-          console.log(`[${time}] 📝 准备写入剪贴板，长度: ${wrappedContent.length}`);
-          await writeClipboard(wrappedContent);
-          await new Promise(resolve => setTimeout(resolve, 150)); // 等待剪贴板写入完成
-          // 验证剪贴板内容
-          const verify = await readClipboard();
-          console.log(`[${time}] 📝 验证剪贴板，长度: ${verify.length}，是否包含prompt: ${verify.includes('【重要')}`);
+        // 根据是否需要 AI 回复，决定写入的内容
+        if (currentText.trim()) {
+          const contentToWrite = pasteNeedAiReply 
+            ? wrapPromptWithSummaryRequest(currentText) 
+            : currentText;
+          await writeClipboard(contentToWrite);
+          await new Promise(resolve => setTimeout(resolve, 100));
+          console.log(`[${time}] 📝 已写入剪贴板${pasteNeedAiReply ? '（含prompt）' : ''}`);
         }
         
         await doPaste();
@@ -195,12 +192,14 @@ async function handleMessage(ws, data) {
         const submitNeedAiReply = message.needAiReply === true;
         console.log(`[${time}] 🚀 粘贴并发送${submitNeedAiReply ? '（需AI回复）' : ''}`);
         
-        // 如果需要 AI 回复，先包装 prompt 再写入剪贴板
-        if (submitNeedAiReply && currentText.trim()) {
-          const wrappedContent = wrapPromptWithSummaryRequest(currentText);
-          await writeClipboard(wrappedContent);
-          await new Promise(resolve => setTimeout(resolve, 100)); // 等待剪贴板写入完成
-          console.log(`[${time}] 📝 已包装 prompt`);
+        // 根据是否需要 AI 回复，决定写入的内容
+        if (currentText.trim()) {
+          const contentToWrite = submitNeedAiReply 
+            ? wrapPromptWithSummaryRequest(currentText) 
+            : currentText;
+          await writeClipboard(contentToWrite);
+          await new Promise(resolve => setTimeout(resolve, 100));
+          console.log(`[${time}] 📝 已写入剪贴板${submitNeedAiReply ? '（含prompt）' : ''}`);
         }
         
         await doPaste();
