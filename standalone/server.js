@@ -21,8 +21,12 @@ const PORT = 9527;
 // 当前同步的文本内容
 let currentText = '';
 
-// Prompt 包装模板 - 要求 AI 先完成任务，然后返回简短摘要
-const SUMMARY_PROMPT_SUFFIX = `【重要：请先完成上述任务。完成后，在回复的最后一行用以下格式返回一句话摘要（不超过50字），方便我在手机端查看：[摘要: 简要描述你完成了什么]】`;
+// Prompt 包装模板 - 要求 AI 先完成任务，然后发送回复到手机
+const SUMMARY_PROMPT_SUFFIX = `
+
+【重要：完成任务后，请执行以下命令将回复发送到我的手机：
+cd /Users/vonxq/code/cursor/voice-to-cursor/standalone && node send-reply.js "你的简短回复摘要（不超过50字）"
+】`;
 
 // 包装 prompt，添加摘要请求
 function wrapPromptWithSummaryRequest(text) {
