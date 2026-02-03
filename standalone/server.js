@@ -45,20 +45,38 @@ function getLocalIP() {
   return '127.0.0.1';
 }
 
-// 写入剪贴板
+// 写入剪贴板（支持多行文本）
 async function writeClipboard(text) {
-  // macOS
-  if (process.platform === 'darwin') {
-    await execAsync(`echo ${JSON.stringify(text)} | pbcopy`);
-  }
-  // Windows
-  else if (process.platform === 'win32') {
-    await execAsync(`echo ${text} | clip`);
-  }
-  // Linux
-  else {
-    await execAsync(`echo ${JSON.stringify(text)} | xclip -selection clipboard`);
-  }
+  return new Promise((resolve, reject) => {
+    let cmd, args;
+    
+    if (process.platform === 'darwin') {
+      cmd = 'pbcopy';
+      args = [];
+    } else if (process.platform === 'win32') {
+      cmd = 'clip';
+      args = [];
+    } else {
+      cmd = 'xclip';
+      args = ['-selection', 'clipboard'];
+    }
+    
+    const { spawn } = require('child_process');
+    const proc = spawn(cmd, args);
+    
+    proc.stdin.write(text);
+    proc.stdin.end();
+    
+    proc.on('close', (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`剪贴板写入失败，退出码: ${code}`));
+      }
+    });
+    
+    proc.on('error', reject);
+  });
 }
 
 // 读取剪贴板
