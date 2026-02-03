@@ -17,6 +17,7 @@ import {
   ActionSheetIOS,
   Clipboard,
   Dimensions,
+  KeyboardAvoidingView,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
@@ -424,55 +425,11 @@ export default function InputScreen() {
         </View>
       </View>
 
-      {/* 聊天记录（精简显示） */}
-      <View style={styles.historySection}>
-        <FlatList
-          ref={flatListRef}
-          horizontal
-          data={messages.slice(-10)}
-          keyExtractor={(item) => item.id}
-          renderItem={renderMessage}
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.historyContent}
-          ListEmptyComponent={
-            <Text style={styles.emptyText}>暂无记录</Text>
-          }
-        />
-      </View>
-
-      {/* 输入框 */}
-      <View style={styles.inputSection}>
-        <TextInput
-          ref={inputRef}
-          style={styles.textInput}
-          placeholder={connected ? "输入内容，实时同步到电脑..." : "请先连接电脑"}
-          placeholderTextColor={theme.textSecondary}
-          multiline
-          value={text}
-          onChangeText={handleTextChange}
-          editable={connected && !sending}
-        />
-        
-        {/* 图片预览 */}
-        {images.length > 0 && (
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagePreview}>
-            {images.map((img) => (
-              <View key={img.id} style={styles.previewItem}>
-                <Image source={{ uri: img.uri }} style={styles.previewImage} />
-                <TouchableOpacity style={styles.previewRemove} onPress={() => removeImage(img.id)}>
-                  <Text style={styles.previewRemoveText}>×</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
-          </ScrollView>
-        )}
-      </View>
-
       {/* 功能按钮区域 */}
-      <View style={styles.actionSection}>
+      <ScrollView style={styles.actionSection} showsVerticalScrollIndicator={false}>
         {/* 获取内容 */}
         <View style={styles.actionGroup}>
-          <Text style={styles.groupLabel}>获取内容</Text>
+          <Text style={styles.groupLabel}>从电脑获取</Text>
           <View style={styles.actionRow}>
             <TouchableOpacity 
               style={[styles.actionBtn, !connected && styles.btnDisabled]}
@@ -509,45 +466,86 @@ export default function InputScreen() {
           </View>
         </View>
 
-        {/* 发送到电脑 */}
-        <View style={styles.actionGroup}>
-          <Text style={styles.groupLabel}>发送到电脑</Text>
-          <View style={styles.actionRow}>
-            <TouchableOpacity 
-              style={[styles.sendBtn, styles.btnPaste, (!connected || !hasContent || sending) && styles.btnDisabled]}
-              onPress={handlePasteOnly}
-              disabled={!connected || !hasContent || sending}
-            >
-              {sending ? <ActivityIndicator color="#fff" size="small" /> : (
-                <>
-                  <Text style={styles.sendIcon}>📋</Text>
-                  <Text style={styles.sendText}>仅粘贴</Text>
-                </>
-              )}
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.sendBtn, styles.btnReplace, (!connected || !hasContent || sending) && styles.btnDisabled]}
-              onPress={replaceCurrentLine}
-              disabled={!connected || !hasContent || sending}
-            >
-              <Text style={styles.sendIcon}>🔄</Text>
-              <Text style={styles.sendText}>替换行</Text>
-            </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.sendBtn, styles.btnSubmit, (!connected || !hasContent || sending) && styles.btnDisabled]}
-              onPress={handleSubmit}
-              disabled={!connected || !hasContent || sending}
-            >
-              {sending ? <ActivityIndicator color="#fff" size="small" /> : (
-                <>
-                  <Text style={styles.sendIcon}>🚀</Text>
-                  <Text style={styles.sendText}>发送</Text>
-                </>
-              )}
-            </TouchableOpacity>
+        {/* 聊天记录（精简显示） */}
+        {messages.length > 0 && (
+          <View style={styles.historyGroup}>
+            <Text style={styles.groupLabel}>最近记录（长按可复制）</Text>
+            <FlatList
+              ref={flatListRef}
+              horizontal
+              data={[...messages].reverse().slice(0, 10)}
+              keyExtractor={(item) => item.id}
+              renderItem={renderMessage}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.historyContent}
+            />
+          </View>
+        )}
+      </ScrollView>
+
+      {/* 底部输入区域 - 始终可见 */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+      >
+        <View style={styles.inputSection}>
+          {/* 图片预览 */}
+          {images.length > 0 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imagePreview}>
+              {images.map((img) => (
+                <View key={img.id} style={styles.previewItem}>
+                  <Image source={{ uri: img.uri }} style={styles.previewImage} />
+                  <TouchableOpacity style={styles.previewRemove} onPress={() => removeImage(img.id)}>
+                    <Text style={styles.previewRemoveText}>×</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </ScrollView>
+          )}
+          
+          <View style={styles.inputRow}>
+            <TextInput
+              ref={inputRef}
+              style={styles.textInput}
+              placeholder={connected ? "输入内容..." : "请先连接"}
+              placeholderTextColor={theme.textSecondary}
+              multiline
+              value={text}
+              onChangeText={handleTextChange}
+              editable={connected && !sending}
+            />
+            
+            {/* 发送按钮组 */}
+            <View style={styles.inputBtns}>
+              <TouchableOpacity 
+                style={[styles.inputBtn, styles.btnPaste, (!connected || !hasContent || sending) && styles.btnDisabled]}
+                onPress={handlePasteOnly}
+                disabled={!connected || !hasContent || sending}
+              >
+                {sending ? <ActivityIndicator color="#fff" size="small" /> : (
+                  <Text style={styles.inputBtnText}>贴</Text>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.inputBtn, styles.btnReplace, (!connected || !hasContent || sending) && styles.btnDisabled]}
+                onPress={replaceCurrentLine}
+                disabled={!connected || !hasContent || sending}
+              >
+                <Text style={styles.inputBtnText}>换</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={[styles.inputBtn, styles.btnSubmit, (!connected || !hasContent || sending) && styles.btnDisabled]}
+                onPress={handleSubmit}
+                disabled={!connected || !hasContent || sending}
+              >
+                {sending ? <ActivityIndicator color="#fff" size="small" /> : (
+                  <Text style={styles.inputBtnText}>发</Text>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -611,101 +609,18 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
   
-  // 历史记录
-  historySection: {
-    backgroundColor: theme.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.border,
-    paddingVertical: 8,
-  },
-  historyContent: {
-    paddingHorizontal: 12,
-    gap: 8,
-  },
-  msgItem: {
-    backgroundColor: theme.surfaceLight,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    maxWidth: SCREEN_WIDTH * 0.6,
-    marginRight: 8,
-  },
-  msgItemUser: {
-    backgroundColor: theme.primary,
-  },
-  msgText: {
-    color: theme.text,
-    fontSize: 13,
-    lineHeight: 18,
-  },
-  msgTime: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 10,
-    marginTop: 4,
-    textAlign: 'right',
-  },
-  emptyText: {
-    color: theme.textSecondary,
-    fontSize: 13,
-    paddingHorizontal: 12,
-  },
-  
-  // 输入区域
-  inputSection: {
-    backgroundColor: theme.surface,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.border,
-  },
-  textInput: {
-    backgroundColor: theme.surfaceLight,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: theme.text,
-    minHeight: 80,
-    maxHeight: 120,
-    textAlignVertical: 'top',
-  },
-  imagePreview: {
-    marginTop: 8,
-  },
-  previewItem: {
-    marginRight: 8,
-    position: 'relative',
-  },
-  previewImage: {
-    width: 50,
-    height: 50,
-    borderRadius: 8,
-  },
-  previewRemove: {
-    position: 'absolute',
-    top: -6,
-    right: -6,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: theme.danger,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  previewRemoveText: {
-    color: '#fff',
-    fontSize: 12,
-    fontWeight: 'bold',
-  },
-  
   // 功能按钮区域
   actionSection: {
     flex: 1,
     backgroundColor: theme.background,
-    padding: 16,
   },
   actionGroup: {
-    marginBottom: 20,
+    padding: 16,
+    paddingBottom: 8,
+  },
+  historyGroup: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
   groupLabel: {
     color: theme.textSecondary,
@@ -735,13 +650,95 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   
-  // 发送按钮
-  sendBtn: {
-    flex: 1,
+  // 历史记录
+  historyContent: {
+    gap: 8,
+  },
+  msgItem: {
+    backgroundColor: theme.surfaceLight,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     borderRadius: 12,
-    paddingVertical: 18,
+    maxWidth: SCREEN_WIDTH * 0.6,
+  },
+  msgItemUser: {
+    backgroundColor: theme.primary,
+  },
+  msgText: {
+    color: theme.text,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  msgTime: {
+    color: 'rgba(255,255,255,0.5)',
+    fontSize: 10,
+    marginTop: 4,
+    textAlign: 'right',
+  },
+  
+  // 底部输入区域
+  inputSection: {
+    backgroundColor: theme.surface,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    paddingBottom: Platform.OS === 'ios' ? 30 : 10,
+    borderTopWidth: 1,
+    borderTopColor: theme.border,
+  },
+  imagePreview: {
+    marginBottom: 10,
+  },
+  previewItem: {
+    marginRight: 8,
+    position: 'relative',
+  },
+  previewImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 8,
+  },
+  previewRemove: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: theme.danger,
+    justifyContent: 'center',
     alignItems: 'center',
-    flexDirection: 'column',
+  },
+  previewRemoveText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: 8,
+  },
+  textInput: {
+    flex: 1,
+    backgroundColor: theme.surfaceLight,
+    borderRadius: 18,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: theme.text,
+    maxHeight: 100,
+    minHeight: 40,
+  },
+  inputBtns: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  inputBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   btnPaste: {
     backgroundColor: theme.secondary,
@@ -752,14 +749,10 @@ const styles = StyleSheet.create({
   btnSubmit: {
     backgroundColor: theme.success,
   },
-  sendIcon: {
-    fontSize: 20,
-    marginBottom: 4,
-  },
-  sendText: {
+  inputBtnText: {
     color: '#fff',
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
   },
   btnDisabled: {
     opacity: 0.4,
