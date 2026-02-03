@@ -110,7 +110,8 @@ export class VoiceToCursorServer {
               break;
               
             case 'submit':
-              const submitNeedAiReply = (message as any).needAiReply || false;
+              const submitNeedAiReply = (message as any).needAiReply === true;
+              console.log('[Voice to Cursor] submit 收到 needAiReply:', (message as any).needAiReply, '处理为:', submitNeedAiReply);
               this.sendLog('received', 'submit', `提交发送${submitNeedAiReply ? '（需AI回复）' : ''}`);
               await handleSubmit(submitNeedAiReply);
               ws.send(JSON.stringify({ type: 'ack', action: 'submit' }));

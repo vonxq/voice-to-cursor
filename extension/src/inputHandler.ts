@@ -155,9 +155,12 @@ export async function handlePasteOnly(needAiReply: boolean = false): Promise<voi
  * 处理提交/发送
  */
 export async function handleSubmit(needAiReply: boolean = false): Promise<void> {
+  console.log('[Voice to Cursor] handleSubmit - needAiReply:', needAiReply, 'currentText:', currentText.substring(0, 50));
+  
   // 如果需要 AI 回复，在提交前用包装后的 prompt 替换当前内容
   if (needAiReply && currentText.trim()) {
     const wrappedContent = wrapPromptWithSummaryRequest(currentText);
+    console.log('[Voice to Cursor] 包装后的内容:', wrappedContent.substring(0, 100));
     let content = wrappedContent;
     
     // 添加图片引用
