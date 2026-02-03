@@ -1,14 +1,27 @@
 {
   "name": "voice-to-cursor",
   "displayName": "Voice to Cursor",
-  "description": "手机端语音/文字输入实时同步到 Cursor",
-  "version": "0.0.1",
+  "description": "手机端语音/文字输入实时同步到 Cursor AI 对话框",
+  "version": "1.0.0",
   "publisher": "vonxq",
+  "icon": "icon.png",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vonxq/voice-to-cursor"
+  },
+  "license": "MIT",
   "engines": {
     "vscode": "^1.85.0"
   },
   "categories": [
     "Other"
+  ],
+  "keywords": [
+    "voice",
+    "mobile",
+    "input",
+    "cursor",
+    "ai"
   ],
   "activationEvents": [
     "onCommand:voiceToCursor.start",
