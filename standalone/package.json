@@ -1,0 +1,16 @@
+{
+  "name": "voice-to-cursor-standalone",
+  "version": "1.0.0",
+  "description": "Voice to Cursor 独立版 - 可在任何应用中使用",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "bin": {
+    "voice-to-cursor": "./server.js"
+  },
+  "dependencies": {
+    "qrcode-terminal": "^0.12.0",
+    "ws": "^8.16.0"
+  }
+}
