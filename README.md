@@ -1,90 +1,95 @@
 # Voice to Cursor
 
-📱 用手机语音/文字输入，实时同步到电脑的 Cursor AI 对话框。支持 Cursor 插件和独立版（可在任何应用中使用）。
+📱 用手机语音/文字输入，实时同步到电脑的 Cursor AI 对话框。
+
+## 📥 快速安装
+
+### 手机 App
+
+| 平台 | 下载方式 |
+|------|----------|
+| **Android** | [下载 APK](https://github.com/vonxq/voice-to-cursor/releases) 直接安装 |
+| **iOS** | 需自行构建（见下方说明）|
+
+### 电脑端
+
+#### 方式一：独立版（推荐，任何应用都能用）
+
+```bash
+# 下载项目
+git clone https://github.com/vonxq/voice-to-cursor.git
+cd voice-to-cursor/standalone
+
+# 安装依赖并启动
+npm install
+npm start
+```
+
+启动后会显示两个二维码：
+- **Web 版二维码**：用手机浏览器扫描，无需安装 App（推荐）
+- **App 版二维码**：用手机 App 扫码连接
+
+> 💡 **Web 版最轻量**：直接用手机浏览器扫码访问 `http://电脑IP:9527` 即可使用，无需安装任何 App！
+
+#### 方式二：Cursor 插件
+
+1. 在 Cursor 扩展商店搜索 "Voice to Cursor" 安装
+2. 按 `Cmd+Shift+P`，运行 "Voice to Cursor: 启动服务"
+3. 用手机扫码连接
 
 ## ✨ 功能特性
 
 - 📝 **实时同步**：手机输入实时同步到电脑
-- 🎤 **语音输入**：配合手机输入法的语音功能使用
-- 🖼️ **图片支持**：支持选择相册图片或拍照发送
-- 📋 **剪贴板互通**：可获取电脑剪贴板内容到手机
+- 🎤 **语音输入**：配合手机输入法的语音功能
+- 🖼️ **图片支持**：选择相册图片或拍照发送
+- 📋 **剪贴板互通**：获取电脑剪贴板内容到手机
 - 🔄 **替换当前行**：支持替换终端当前行内容
-- 🤖 **AI 回复**：开启后 AI 回复会自动发送到手机
-- 💬 **聊天记录**：手机端保存聊天历史，方便查看
-- 🔗 **扫码连接**：通过二维码快速建立连接
+- 🤖 **AI 回复**：开启后 AI 回复自动发送到手机
+- 💬 **聊天记录**：手机端保存聊天历史
 
-## 📁 项目结构
-
-```
-voice-to-cursor/
-├── extension/          # Cursor/VSCode 插件版
-├── standalone/         # 独立版（可在任何应用中使用）
-└── mobile-app/         # React Native 手机 App
-```
-
-## 🚀 快速开始
-
-### 方式一：独立版（推荐，可在任何应用中使用）
-
-1. **启动服务器**
-   ```bash
-   cd standalone
-   npm install
-   npm start
-   ```
-
-2. **手机连接**
-   - 下载 Expo Go App（[iOS](https://apps.apple.com/app/expo-go/id982107779) / [Android](https://play.google.com/store/apps/details?id=host.exp.exponent)）
-   - 启动手机 App：
-     ```bash
-     cd mobile-app
-     npm install
-     npx expo start
-     ```
-   - 用 Expo Go 扫描终端二维码
-   - 在 App 中扫描服务器显示的二维码连接
-
-3. **开始使用**
-   - 手机输入内容，点击「发送」或「仅粘贴」
-   - 内容会粘贴到电脑当前光标位置
-
-### 方式二：Cursor 插件版
-
-1. **安装插件**
-   ```bash
-   cd extension
-   npm install
-   npm run compile
-   ```
-
-2. **在 Cursor 中启动**
-   - 按 `F5` 或运行 "Voice to Cursor: 启动服务"
-   - 显示二维码面板
-
-3. **手机连接并使用**（同上）
-
-## 📱 手机 App 功能
+## 📱 手机 App 操作说明
 
 | 按钮 | 功能 |
 |------|------|
-| 📋 剪贴板 | 获取电脑剪贴板内容到手机 |
+| 📋 剪贴板 | 获取电脑剪贴板内容 |
 | 📥 当前行 | 获取终端当前行内容 |
 | 🖼️ 相册 | 选择图片发送 |
 | 📷 拍照 | 拍照发送 |
 | 🗑️ 清空 | 清空输入框 |
-| 📋 粘贴 | 仅粘贴内容到电脑 |
+| 📋 粘贴 | 仅粘贴到电脑 |
 | 🔄 替换 | 替换终端当前行 |
 | 🚀 发送 | 粘贴并回车发送 |
 | 🤖 ON/OFF | AI 回复开关 |
 
-### AI 回复功能
+## 🔧 自行构建
 
-打开 🤖 开关后：
-- 发送的内容会自动添加 prompt
-- AI 完成任务后会调用接口发送回复到手机
-- 手机聊天记录中可查看 AI 回复
+### iOS 构建（需要 Mac + Apple 开发者账号）
 
-## ⚙️ 配置说明
+```bash
+cd mobile-app
+npm install
+
+# 连接 iPhone 后运行
+npx expo run:ios --device
+```
+
+### Android 构建
+
+```bash
+cd mobile-app
+npm install
+
+# 安装 EAS CLI
+npm install -g eas-cli
+
+# 登录 Expo 账号
+eas login
+
+# 构建 APK
+eas build --platform android --profile preview
+```
+
+## ⚙️ 配置
 
 ### 端口
 默认端口 `9527`，可在代码中修改。
@@ -93,42 +98,37 @@ voice-to-cursor/
 - 手机和电脑必须在同一局域网
 - 确保端口未被防火墙阻止
 
+## 📁 项目结构
+
+```
+voice-to-cursor/
+├── extension/      # Cursor/VSCode 插件
+├── standalone/     # 独立版服务器
+└── mobile-app/     # React Native 手机 App
+```
+
 ## 🛠️ 开发
 
-### 插件开发
 ```bash
-cd extension
-npm run watch  # 监听模式编译
-```
+# 插件开发
+cd extension && npm run watch
 
-### 独立版开发
-```bash
-cd standalone
-node server.js
-```
+# 独立版开发
+cd standalone && node server.js
 
-### 手机 App 开发
-```bash
-cd mobile-app
-npx expo start
-```
-
-### 发送 AI 回复到手机
-```bash
-cd standalone
-node send-reply.js "你的回复内容"
+# 手机 App 开发
+cd mobile-app && npx expo start
 ```
 
 ## 📝 更新日志
 
 ### v1.0.0
 - ✅ 实时文字同步
-- ✅ 图片发送支持
-- ✅ 扫码快速连接
-- ✅ 独立版支持（可在任何应用中使用）
+- ✅ 图片发送
+- ✅ 扫码连接
+- ✅ 独立版（系统级使用）
 - ✅ 剪贴板互通
-- ✅ 替换终端当前行
-- ✅ AI 回复开关
+- ✅ AI 回复功能
 - ✅ 聊天记录持久化
 
 ## 📄 许可证

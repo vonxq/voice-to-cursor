@@ -9,6 +9,9 @@
  *   chmod +x server.js && ./server.js
  */
 
+const http = require('http');
+const fs = require('fs');
+const path = require('path');
 const { WebSocketServer } = require('ws');
 const { exec } = require('child_process');
 const { promisify } = require('util');
@@ -279,6 +282,27 @@ function broadcast(message) {
 function startServer() {
   const ip = getLocalIP();
   const wsUrl = `ws://${ip}:${PORT}`;
+  const webUrl = `http://${ip}:${PORT}`;
+  
+  // 创建 HTTP 服务器提供 Web 页面
+  const server = http.createServer((req, res) => {
+    // 只处理根路径和 index.html
+    if (req.url === '/' || req.url === '/index.html') {
+      const htmlPath = path.join(__dirname, 'web', 'index.html');
+      fs.readFile(htmlPath, 'utf8', (err, data) => {
+        if (err) {
+          res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+          res.end('Web 页面未找到');
+          return;
+        }
+        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(data);
+      });
+    } else {
+      res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
+      res.end('Not Found');
+    }
+  });
   
   console.log('\n');
   console.log('╔═══════════════════════════════════════════════════╗');
@@ -286,11 +310,17 @@ function startServer() {
   console.log('║         可在任何应用中使用                        ║');
   console.log('╠═══════════════════════════════════════════════════╣');
   console.log(`║  WebSocket: ${wsUrl.padEnd(37)}║`);
+  console.log(`║  Web 版本: ${webUrl.padEnd(38)}║`);
   console.log('╚═══════════════════════════════════════════════════╝');
-  console.log('\n📱 用手机 App 扫描下方二维码连接:\n');
+  console.log('\n📱 方式1: 用手机 App 扫描下方二维码:\n');
   
-  // 显示二维码
+  // 显示 WebSocket 二维码
   qrcode.generate(wsUrl, { small: true });
+  
+  console.log('\n📱 方式2: 用手机浏览器扫描下方二维码 (Web版):\n');
+  
+  // 显示 Web 页面二维码
+  qrcode.generate(webUrl, { small: true });
   
   console.log('\n⏳ 等待手机连接...\n');
   console.log('提示: 连接后，在任意输入框中使用');
@@ -298,7 +328,8 @@ function startServer() {
   console.log('按 Ctrl+C 停止服务\n');
   console.log('─'.repeat(50));
   
-  const wss = new WebSocketServer({ port: PORT });
+  // WebSocket 服务器挂载到 HTTP 服务器
+  const wss = new WebSocketServer({ server });
   
   wss.on('connection', (ws) => {
     clients.add(ws);
@@ -332,7 +363,7 @@ function startServer() {
     });
   });
   
-  wss.on('error', (error) => {
+  server.on('error', (error) => {
     if (error.code === 'EADDRINUSE') {
       console.error(`\n❌ 端口 ${PORT} 已被占用，请先关闭其他服务\n`);
     } else {
@@ -340,6 +371,9 @@ function startServer() {
     }
     process.exit(1);
   });
+  
+  // 启动 HTTP 服务器
+  server.listen(PORT);
 }
 
 // 检查依赖

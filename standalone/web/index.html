@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Voice to Cursor</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    :root {
+      --primary: #007AFF;
+      --primary-dark: #0056b3;
+      --success: #34C759;
+      --danger: #FF3B30;
+      --warning: #FF9500;
+      --bg: #f5f5f7;
+      --card: #ffffff;
+      --text: #1d1d1f;
+      --text-secondary: #86868b;
+      --border: #d2d2d7;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 16px;
+      padding-bottom: env(safe-area-inset-bottom, 16px);
+    }
+    
+    .container {
+      max-width: 500px;
+      margin: 0 auto;
+    }
+    
+    /* 状态栏 */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 16px;
+      background: var(--card);
+      border-radius: 12px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--danger);
+    }
+    
+    .status-dot.connected {
+      background: var(--success);
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    
+    .status-text {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+    
+    /* AI回复开关 */
+    .ai-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .ai-toggle label {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+    
+    .switch {
+      position: relative;
+      width: 50px;
+      height: 28px;
+    }
+    
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--border);
+      border-radius: 28px;
+      transition: 0.3s;
+    }
+    
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 22px;
+      width: 22px;
+      left: 3px;
+      bottom: 3px;
+      background: white;
+      border-radius: 50%;
+      transition: 0.3s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    
+    input:checked + .slider {
+      background: var(--primary);
+    }
+    
+    input:checked + .slider:before {
+      transform: translateX(22px);
+    }
+    
+    /* 输入区域 */
+    .input-card {
+      background: var(--card);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .input-area {
+      width: 100%;
+      min-height: 150px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      font-size: 16px;
+      resize: none;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    
+    .input-area:focus {
+      border-color: var(--primary);
+    }
+    
+    .char-count {
+      text-align: right;
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 8px;
+    }
+    
+    /* 工具栏 */
+    .toolbar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    
+    .tool-btn {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      padding: 12px 8px;
+      background: var(--card);
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .tool-btn:active {
+      transform: scale(0.95);
+      background: var(--bg);
+    }
+    
+    .tool-btn .icon {
+      font-size: 24px;
+    }
+    
+    .tool-btn .label {
+      font-size: 11px;
+      color: var(--text-secondary);
+    }
+    
+    /* 操作按钮 */
+    .actions {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    
+    .action-btn {
+      padding: 16px;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .action-btn:active {
+      transform: scale(0.95);
+    }
+    
+    .action-btn.paste {
+      background: var(--card);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    
+    .action-btn.replace {
+      background: var(--warning);
+      color: white;
+    }
+    
+    .action-btn.submit {
+      background: var(--primary);
+      color: white;
+    }
+    
+    .action-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    /* 聊天记录 */
+    .chat-section {
+      margin-top: 16px;
+    }
+    
+    .chat-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+    }
+    
+    .chat-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-secondary);
+    }
+    
+    .chat-clear {
+      font-size: 12px;
+      color: var(--danger);
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+    
+    .chat-list {
+      max-height: 300px;
+      overflow-y: auto;
+      background: var(--card);
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .chat-item {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--bg);
+    }
+    
+    .chat-item:last-child {
+      border-bottom: none;
+    }
+    
+    .chat-item.user {
+      background: #f0f7ff;
+    }
+    
+    .chat-item.ai {
+      background: #f0fff4;
+    }
+    
+    .chat-role {
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    
+    .chat-item.user .chat-role {
+      color: var(--primary);
+    }
+    
+    .chat-item.ai .chat-role {
+      color: var(--success);
+    }
+    
+    .chat-content {
+      font-size: 14px;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+    
+    .chat-time {
+      font-size: 11px;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+    
+    .chat-empty {
+      padding: 32px;
+      text-align: center;
+      color: var(--text-secondary);
+      font-size: 14px;
+    }
+    
+    /* Toast 提示 */
+    .toast {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+    }
+    
+    .toast.show {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- 状态栏 -->
+    <div class="status-bar">
+      <div class="status-indicator">
+        <div class="status-dot" id="statusDot"></div>
+        <span class="status-text" id="statusText">未连接</span>
+      </div>
+      <div class="ai-toggle">
+        <label>🤖 AI回复</label>
+        <label class="switch">
+          <input type="checkbox" id="aiToggle">
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+    
+    <!-- 输入区域 -->
+    <div class="input-card">
+      <textarea 
+        class="input-area" 
+        id="inputArea" 
+        placeholder="在这里输入内容..."
+      ></textarea>
+      <div class="char-count"><span id="charCount">0</span> 字</div>
+    </div>
+    
+    <!-- 工具栏 -->
+    <div class="toolbar">
+      <button class="tool-btn" id="btnClipboard">
+        <span class="icon">📋</span>
+        <span class="label">剪贴板</span>
+      </button>
+      <button class="tool-btn" id="btnCurrentLine">
+        <span class="icon">📥</span>
+        <span class="label">当前行</span>
+      </button>
+      <button class="tool-btn" id="btnClear">
+        <span class="icon">🗑️</span>
+        <span class="label">清空</span>
+      </button>
+      <button class="tool-btn" id="btnReconnect">
+        <span class="icon">🔄</span>
+        <span class="label">重连</span>
+      </button>
+    </div>
+    
+    <!-- 操作按钮 -->
+    <div class="actions">
+      <button class="action-btn paste" id="btnPaste" disabled>📋 粘贴</button>
+      <button class="action-btn replace" id="btnReplace" disabled>🔄 替换</button>
+      <button class="action-btn submit" id="btnSubmit" disabled>🚀 发送</button>
+    </div>
+    
+    <!-- 聊天记录 -->
+    <div class="chat-section">
+      <div class="chat-header">
+        <span class="chat-title">💬 聊天记录</span>
+        <button class="chat-clear" id="btnClearChat">清空</button>
+      </div>
+      <div class="chat-list" id="chatList">
+        <div class="chat-empty">暂无聊天记录</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+  
+  <script>
+    // ============ WebSocket 连接 ============
+    let ws = null;
+    let currentText = '';
+    const wsUrl = location.protocol === 'https:' 
+      ? `wss://${location.host}` 
+      : `ws://${location.host}`;
+    
+    // DOM 元素
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    const inputArea = document.getElementById('inputArea');
+    const charCount = document.getElementById('charCount');
+    const aiToggle = document.getElementById('aiToggle');
+    const chatList = document.getElementById('chatList');
+    const toast = document.getElementById('toast');
+    
+    const btnPaste = document.getElementById('btnPaste');
+    const btnReplace = document.getElementById('btnReplace');
+    const btnSubmit = document.getElementById('btnSubmit');
+    const btnClipboard = document.getElementById('btnClipboard');
+    const btnCurrentLine = document.getElementById('btnCurrentLine');
+    const btnClear = document.getElementById('btnClear');
+    const btnReconnect = document.getElementById('btnReconnect');
+    const btnClearChat = document.getElementById('btnClearChat');
+    
+    // ============ 连接管理 ============
+    function connect() {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        return;
+      }
+      
+      ws = new WebSocket(wsUrl);
+      
+      ws.onopen = () => {
+        statusDot.classList.add('connected');
+        statusText.textContent = '已连接';
+        setButtonsEnabled(true);
+        showToast('✅ 连接成功');
+      };
+      
+      ws.onclose = () => {
+        statusDot.classList.remove('connected');
+        statusText.textContent = '已断开';
+        setButtonsEnabled(false);
+        // 3秒后自动重连
+        setTimeout(connect, 3000);
+      };
+      
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        showToast('❌ 连接失败');
+      };
+      
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          handleMessage(data);
+        } catch (e) {
+          console.error('Parse error:', e);
+        }
+      };
+    }
+    
+    function setButtonsEnabled(enabled) {
+      btnPaste.disabled = !enabled;
+      btnReplace.disabled = !enabled;
+      btnSubmit.disabled = !enabled;
+    }
+    
+    // ============ 消息处理 ============
+    function handleMessage(data) {
+      switch (data.type) {
+        case 'ack':
+          if (data.action === 'submit') {
+            // 发送成功后添加到聊天记录
+            if (currentText.trim()) {
+              addChatItem('user', currentText);
+              inputArea.value = '';
+              currentText = '';
+              updateCharCount();
+            }
+          }
+          break;
+          
+        case 'clipboard_content':
+          inputArea.value = data.content || '';
+          currentText = inputArea.value;
+          updateCharCount();
+          syncText();
+          showToast('📋 已获取剪贴板');
+          break;
+          
+        case 'current_line_content':
+          inputArea.value = data.content || '';
+          currentText = inputArea.value;
+          updateCharCount();
+          syncText();
+          showToast('📥 已获取当前行');
+          break;
+          
+        case 'ai_reply':
+          addChatItem('ai', data.summary || data.content || '');
+          showToast('🤖 收到AI回复');
+          break;
+      }
+    }
+    
+    // ============ 发送消息 ============
+    function send(message) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(message));
+      }
+    }
+    
+    function syncText() {
+      send({
+        type: 'sync_text',
+        content: currentText,
+        timestamp: Date.now()
+      });
+    }
+    
+    // ============ 聊天记录 ============
+    let chatHistory = JSON.parse(localStorage.getItem('chatHistory') || '[]');
+    
+    function renderChatList() {
+      if (chatHistory.length === 0) {
+        chatList.innerHTML = '<div class="chat-empty">暂无聊天记录</div>';
+        return;
+      }
+      
+      chatList.innerHTML = chatHistory.map(item => `
+        <div class="chat-item ${item.role}">
+          <div class="chat-role">${item.role === 'user' ? '👤 我' : '🤖 AI'}</div>
+          <div class="chat-content">${escapeHtml(item.content)}</div>
+          <div class="chat-time">${item.time}</div>
+        </div>
+      `).join('');
+      
+      // 滚动到底部
+      chatList.scrollTop = chatList.scrollHeight;
+    }
+    
+    function addChatItem(role, content) {
+      const item = {
+        role,
+        content,
+        time: new Date().toLocaleTimeString('zh-CN')
+      };
+      chatHistory.push(item);
+      // 只保留最近50条
+      if (chatHistory.length > 50) {
+        chatHistory = chatHistory.slice(-50);
+      }
+      localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+      renderChatList();
+    }
+    
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+    
+    // ============ Toast ============
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 2000);
+    }
+    
+    // ============ 字数统计 ============
+    function updateCharCount() {
+      charCount.textContent = inputArea.value.length;
+    }
+    
+    // ============ 事件绑定 ============
+    inputArea.addEventListener('input', () => {
+      currentText = inputArea.value;
+      updateCharCount();
+      syncText();
+    });
+    
+    btnClipboard.addEventListener('click', () => {
+      send({ type: 'get_clipboard', timestamp: Date.now() });
+    });
+    
+    btnCurrentLine.addEventListener('click', () => {
+      send({ type: 'get_current_line', timestamp: Date.now() });
+    });
+    
+    btnClear.addEventListener('click', () => {
+      inputArea.value = '';
+      currentText = '';
+      updateCharCount();
+      syncText();
+    });
+    
+    btnReconnect.addEventListener('click', () => {
+      if (ws) {
+        ws.close();
+      }
+      connect();
+    });
+    
+    btnPaste.addEventListener('click', () => {
+      send({ 
+        type: 'paste_only', 
+        needAiReply: aiToggle.checked,
+        timestamp: Date.now() 
+      });
+      showToast('📋 已粘贴');
+    });
+    
+    btnReplace.addEventListener('click', () => {
+      send({ type: 'replace_line', timestamp: Date.now() });
+      showToast('🔄 已替换');
+    });
+    
+    btnSubmit.addEventListener('click', () => {
+      if (!currentText.trim()) {
+        showToast('请输入内容');
+        return;
+      }
+      send({ 
+        type: 'submit', 
+        needAiReply: aiToggle.checked,
+        timestamp: Date.now() 
+      });
+    });
+    
+    btnClearChat.addEventListener('click', () => {
+      chatHistory = [];
+      localStorage.setItem('chatHistory', JSON.stringify(chatHistory));
+      renderChatList();
+      showToast('已清空聊天记录');
+    });
+    
+    // ============ 初始化 ============
+    renderChatList();
+    connect();
+  </script>
+</body>
+</html>
