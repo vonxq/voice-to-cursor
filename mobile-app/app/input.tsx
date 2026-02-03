@@ -517,12 +517,25 @@ export default function InputScreen() {
         {/* 发送按钮组 */}
         <View style={styles.sendRow}>
           <TouchableOpacity 
+            style={[styles.sendBtn, styles.btnClear, !hasContent && styles.btnDisabled]}
+            onPress={() => {
+              setText('');
+              setImages([]);
+              if (connected && wsService.isConnected()) {
+                wsService.syncText('');
+              }
+            }}
+            disabled={!hasContent}
+          >
+            <Text style={styles.sendBtnText}>🗑️ 清空</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
             style={[styles.sendBtn, styles.btnPaste, (!connected || !hasContent || sending) && styles.btnDisabled]}
             onPress={handlePasteOnly}
             disabled={!connected || !hasContent || sending}
           >
             {sending ? <ActivityIndicator color="#fff" size="small" /> : (
-              <Text style={styles.sendBtnText}>📋 仅粘贴</Text>
+              <Text style={styles.sendBtnText}>📋 粘贴</Text>
             )}
           </TouchableOpacity>
           <TouchableOpacity 
@@ -530,7 +543,7 @@ export default function InputScreen() {
             onPress={replaceCurrentLine}
             disabled={!connected || !hasContent || sending}
           >
-            <Text style={styles.sendBtnText}>🔄 替换行</Text>
+            <Text style={styles.sendBtnText}>🔄 替换</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.sendBtn, styles.btnSubmit, (!connected || !hasContent || sending) && styles.btnDisabled]}
@@ -721,6 +734,10 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
+  },
+  btnClear: {
+    backgroundColor: theme.surfaceLight,
+    flex: 0.6,
   },
   btnPaste: {
     backgroundColor: theme.secondary,

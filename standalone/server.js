@@ -22,10 +22,7 @@ const PORT = 9527;
 let currentText = '';
 
 // Prompt 包装模板 - 要求 AI 先完成任务，然后返回简短摘要
-const SUMMARY_PROMPT_SUFFIX = `
-
-【重要：请先完成上述任务。完成后，在回复的最后一行用以下格式返回一句话摘要（不超过50字），方便我在手机端查看：
-[摘要: 简要描述你完成了什么]】`;
+const SUMMARY_PROMPT_SUFFIX = `【重要：请先完成上述任务。完成后，在回复的最后一行用以下格式返回一句话摘要（不超过50字），方便我在手机端查看：[摘要: 简要描述你完成了什么]】`;
 
 // 包装 prompt，添加摘要请求
 function wrapPromptWithSummaryRequest(text) {
@@ -47,36 +44,28 @@ function getLocalIP() {
 
 // 写入剪贴板（支持多行文本）
 async function writeClipboard(text) {
-  return new Promise((resolve, reject) => {
-    let cmd, args;
+  const fs = require('fs');
+  const path = require('path');
+  const tmpFile = path.join(os.tmpdir(), `clipboard_${Date.now()}.txt`);
+  
+  try {
+    // 写入临时文件
+    fs.writeFileSync(tmpFile, text, 'utf8');
     
+    // 从文件读取到剪贴板
     if (process.platform === 'darwin') {
-      cmd = 'pbcopy';
-      args = [];
+      await execAsync(`cat "${tmpFile}" | pbcopy`);
     } else if (process.platform === 'win32') {
-      cmd = 'clip';
-      args = [];
+      await execAsync(`type "${tmpFile}" | clip`);
     } else {
-      cmd = 'xclip';
-      args = ['-selection', 'clipboard'];
+      await execAsync(`cat "${tmpFile}" | xclip -selection clipboard`);
     }
-    
-    const { spawn } = require('child_process');
-    const proc = spawn(cmd, args);
-    
-    proc.stdin.write(text);
-    proc.stdin.end();
-    
-    proc.on('close', (code) => {
-      if (code === 0) {
-        resolve();
-      } else {
-        reject(new Error(`剪贴板写入失败，退出码: ${code}`));
-      }
-    });
-    
-    proc.on('error', reject);
-  });
+  } finally {
+    // 清理临时文件
+    try {
+      fs.unlinkSync(tmpFile);
+    } catch (e) {}
+  }
 }
 
 // 读取剪贴板
@@ -185,13 +174,17 @@ async function handleMessage(ws, data) {
       case 'paste_only':
         const pasteNeedAiReply = message.needAiReply === true;
         console.log(`[${time}] 📋 执行粘贴${pasteNeedAiReply ? '（需AI回复）' : ''}`);
+        console.log(`[${time}] 📋 当前 currentText: "${currentText.substring(0, 50)}..."`);
         
         // 如果需要 AI 回复，先包装 prompt 再写入剪贴板
         if (pasteNeedAiReply && currentText.trim()) {
           const wrappedContent = wrapPromptWithSummaryRequest(currentText);
+          console.log(`[${time}] 📝 准备写入剪贴板，长度: ${wrappedContent.length}`);
           await writeClipboard(wrappedContent);
-          await new Promise(resolve => setTimeout(resolve, 100)); // 等待剪贴板写入完成
-          console.log(`[${time}] 📝 已包装 prompt`);
+          await new Promise(resolve => setTimeout(resolve, 150)); // 等待剪贴板写入完成
+          // 验证剪贴板内容
+          const verify = await readClipboard();
+          console.log(`[${time}] 📝 验证剪贴板，长度: ${verify.length}，是否包含prompt: ${verify.includes('【重要')}`);
         }
         
         await doPaste();
