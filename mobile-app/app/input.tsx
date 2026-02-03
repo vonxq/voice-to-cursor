@@ -550,15 +550,11 @@ export default function InputScreen() {
           <Text style={styles.historyLabel}>最近记录（长按可复制）</Text>
           <FlatList
             ref={flatListRef}
-            horizontal
-            data={messages.slice(-10)}
+            data={[...messages].reverse().slice(0, 10)}
             keyExtractor={(item) => item.id}
             renderItem={renderMessage}
-            showsHorizontalScrollIndicator={false}
+            showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.historyContent}
-            onContentSizeChange={() => {
-              flatListRef.current?.scrollToEnd({ animated: false });
-            }}
           />
         </View>
       )}
@@ -745,7 +741,7 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: theme.background,
     paddingHorizontal: 12,
-    paddingTop: 12,
+    paddingTop: 8,
   },
   historyLabel: {
     color: theme.textSecondary,
@@ -754,15 +750,14 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   historyContent: {
-    gap: 8,
+    gap: 6,
+    paddingBottom: 12,
   },
   msgItem: {
     backgroundColor: theme.surfaceLight,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     borderRadius: 10,
-    maxWidth: SCREEN_WIDTH * 0.6,
-    minWidth: 80,
   },
   msgItemUser: {
     backgroundColor: theme.primary,

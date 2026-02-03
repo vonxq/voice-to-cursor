@@ -201,10 +201,6 @@ export async function handleSubmit(needAiReply: boolean = false): Promise<void> 
  * 包装 prompt，添加摘要请求（放在末尾，不影响原始指令）
  */
 function wrapPromptWithSummaryRequest(text: string): string {
-  // 如果内容太短（少于10个字符），不添加包装
-  if (text.trim().length < 10) {
-    return text;
-  }
   return text + SUMMARY_PROMPT_SUFFIX;
 }
 
