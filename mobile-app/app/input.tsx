@@ -196,8 +196,12 @@ export default function InputScreen() {
 
   const scrollToTop = useCallback(() => {
     setTimeout(() => {
-      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-    }, 150);
+      try {
+        flatListRef.current?.scrollToIndex({ index: 0, animated: true });
+      } catch (e) {
+        flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
+      }
+    }, 200);
   }, []);
 
   // 监听消息变化，自动滚动到顶部
