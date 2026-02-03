@@ -194,11 +194,18 @@ export default function InputScreen() {
     }, [])
   );
 
-  const scrollToTop = () => {
+  const scrollToTop = useCallback(() => {
     setTimeout(() => {
       flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-    }, 100);
-  };
+    }, 150);
+  }, []);
+
+  // 监听消息变化，自动滚动到顶部
+  useEffect(() => {
+    if (messages.length > 0) {
+      scrollToTop();
+    }
+  }, [messages.length, scrollToTop]);
 
   const handleTextChange = (newText: string) => {
     setText(newText);
