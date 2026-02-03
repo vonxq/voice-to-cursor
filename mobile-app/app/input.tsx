@@ -555,6 +555,7 @@ export default function InputScreen() {
             renderItem={renderMessage}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.historyContent}
+            style={{ flex: 1 }}
           />
         </View>
       )}
@@ -750,7 +751,6 @@ const styles = StyleSheet.create({
     marginLeft: 4,
   },
   historyContent: {
-    gap: 6,
     paddingBottom: 12,
   },
   msgItem: {
@@ -758,6 +758,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 10,
+    marginBottom: 6,
   },
   msgItemUser: {
     backgroundColor: theme.primary,
