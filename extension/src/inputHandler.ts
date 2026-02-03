@@ -46,6 +46,16 @@ export interface GetClipboardMessage {
   timestamp?: number;
 }
 
+export interface GetCurrentLineMessage {
+  type: 'get_current_line';
+  timestamp?: number;
+}
+
+export interface ReplaceLineMessage {
+  type: 'replace_line';
+  timestamp?: number;
+}
+
 // 兼容旧协议
 export interface TextMessage {
   type: 'text';
@@ -60,7 +70,7 @@ export interface ImageMessage {
   timestamp?: number;
 }
 
-export type Message = SyncTextMessage | SyncImageAddMessage | SyncImageRemoveMessage | SubmitMessage | PasteOnlyMessage | GetClipboardMessage | TextMessage | ImageMessage;
+export type Message = SyncTextMessage | SyncImageAddMessage | SyncImageRemoveMessage | SubmitMessage | PasteOnlyMessage | GetClipboardMessage | GetCurrentLineMessage | ReplaceLineMessage | TextMessage | ImageMessage;
 
 // 当前同步状态
 let currentText = '';

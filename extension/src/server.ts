@@ -1,5 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import * as vscode from 'vscode';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 import { 
   Message, 
   insertContent, 
@@ -10,6 +12,8 @@ import {
   handleSubmit,
   clearState 
 } from './inputHandler';
+
+const execAsync = promisify(exec);
 
 export class VoiceToCursorServer {
   private wss: WebSocketServer | null = null;
@@ -128,6 +132,54 @@ export class VoiceToCursorServer {
                 timestamp: Date.now()
               }));
               this.sendLog('sent', 'clipboard_content', clipboardContent.substring(0, 50) + (clipboardContent.length > 50 ? '...' : ''));
+              break;
+              
+            case 'get_current_line':
+              this.sendLog('received', 'get_current_line', '获取当前行');
+              // 模拟复制当前行
+              if (process.platform === 'darwin') {
+                try {
+                  await execAsync(`osascript -e 'tell application "System Events"
+                    keystroke "a" using control down
+                    delay 0.05
+                    keystroke "k" using {shift down, control down}
+                    delay 0.05
+                    keystroke "c" using command down
+                    delay 0.05
+                    key code 124
+                  end tell'`);
+                  await new Promise(resolve => setTimeout(resolve, 100));
+                  const lineContent = await vscode.env.clipboard.readText();
+                  ws.send(JSON.stringify({ 
+                    type: 'current_line_content', 
+                    content: lineContent.trim(),
+                    timestamp: Date.now()
+                  }));
+                  this.sendLog('sent', 'current_line_content', lineContent.trim().substring(0, 50));
+                } catch (error) {
+                  ws.send(JSON.stringify({ type: 'current_line_content', content: '', timestamp: Date.now() }));
+                }
+              }
+              break;
+              
+            case 'replace_line':
+              this.sendLog('received', 'replace_line', '替换当前行');
+              // 清除当前行并粘贴
+              if (process.platform === 'darwin') {
+                try {
+                  await execAsync(`osascript -e 'tell application "System Events"
+                    keystroke "a" using control down
+                    delay 0.05
+                    keystroke "k" using control down
+                    delay 0.05
+                    keystroke "v" using command down
+                  end tell'`);
+                  ws.send(JSON.stringify({ type: 'ack', action: 'replace_line' }));
+                  this.sendLog('sent', 'ack', 'replace_line');
+                } catch (error) {
+                  ws.send(JSON.stringify({ type: 'error', message: '替换失败' }));
+                }
+              }
               break;
               
             // 兼容旧协议
