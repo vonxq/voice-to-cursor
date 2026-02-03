@@ -17,6 +17,8 @@ import {
   FlatList,
   ActionSheetIOS,
   Clipboard,
+  Modal,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
@@ -519,39 +521,6 @@ export default function InputScreen() {
         </View>
       )}
 
-      {/* 功能菜单弹出 */}
-      {showImagePicker && (
-        <View style={styles.imagePickerPopup}>
-          <TouchableOpacity style={styles.pickerOption} onPress={pickImage}>
-            <Text style={styles.pickerIcon}>🖼️</Text>
-            <Text style={styles.pickerText}>相册</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.pickerOption} onPress={takePhoto}>
-            <Text style={styles.pickerIcon}>📷</Text>
-            <Text style={styles.pickerText}>拍照</Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.pickerOption} 
-            onPress={() => {
-              setShowImagePicker(false);
-              fetchClipboardFromPC();
-            }}
-            disabled={fetchingClipboard}
-          >
-            <Text style={styles.pickerIcon}>📋</Text>
-            <Text style={styles.pickerText}>
-              {fetchingClipboard ? '获取中...' : '粘贴电脑内容'}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity 
-            style={[styles.pickerOption, styles.pickerCancel]} 
-            onPress={() => setShowImagePicker(false)}
-          >
-            <Text style={styles.pickerCancelText}>取消</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
       {/* 底部输入区域 */}
       <View style={styles.inputBar}>
         <TouchableOpacity
@@ -599,6 +568,51 @@ export default function InputScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      {/* 功能菜单 Modal */}
+      <Modal
+        visible={showImagePicker}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowImagePicker(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setShowImagePicker(false)}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback>
+              <View style={styles.imagePickerPopup}>
+                <Text style={styles.pickerTitle}>选择操作</Text>
+                <TouchableOpacity style={styles.pickerOption} onPress={pickImage}>
+                  <Text style={styles.pickerIcon}>🖼️</Text>
+                  <Text style={styles.pickerText}>从相册选择</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.pickerOption} onPress={takePhoto}>
+                  <Text style={styles.pickerIcon}>📷</Text>
+                  <Text style={styles.pickerText}>拍照</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.pickerOption} 
+                  onPress={() => {
+                    setShowImagePicker(false);
+                    fetchClipboardFromPC();
+                  }}
+                  disabled={fetchingClipboard}
+                >
+                  <Text style={styles.pickerIcon}>📋</Text>
+                  <Text style={styles.pickerText}>
+                    {fetchingClipboard ? '获取中...' : '粘贴电脑内容'}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={[styles.pickerOption, styles.pickerCancel]} 
+                  onPress={() => setShowImagePicker(false)}
+                >
+                  <Text style={styles.pickerCancelText}>取消</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -825,19 +839,26 @@ const styles = StyleSheet.create({
     lineHeight: 16,
   },
   
+  // Modal 遮罩
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+    paddingBottom: 100,
+    paddingHorizontal: 16,
+  },
   // 图片选择器弹窗
   imagePickerPopup: {
-    position: 'absolute',
-    bottom: 70,
-    left: 16,
     backgroundColor: theme.surface,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    paddingTop: 16,
+  },
+  pickerTitle: {
+    color: theme.textSecondary,
+    fontSize: 13,
+    textAlign: 'center',
+    marginBottom: 8,
   },
   pickerOption: {
     flexDirection: 'row',
