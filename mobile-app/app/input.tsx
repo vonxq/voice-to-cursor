@@ -532,11 +532,14 @@ export default function InputScreen() {
           <FlatList
             ref={flatListRef}
             horizontal
-            data={[...messages].reverse().slice(0, 10)}
+            data={messages.slice(-10)}
             keyExtractor={(item) => item.id}
             renderItem={renderMessage}
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.historyContent}
+            onContentSizeChange={() => {
+              flatListRef.current?.scrollToEnd({ animated: false });
+            }}
           />
         </View>
       )}
