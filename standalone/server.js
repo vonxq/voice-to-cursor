@@ -141,12 +141,8 @@ async function simulateCopyLine() {
   }
 }
 
-// 执行粘贴到当前应用
+// 执行粘贴到当前应用（只模拟粘贴，不写入剪贴板）
 async function doPaste() {
-  if (!currentText) return;
-  
-  await writeClipboard(currentText);
-  
   if (process.platform === 'darwin') {
     try {
       await simulatePaste();
