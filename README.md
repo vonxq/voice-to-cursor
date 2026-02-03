@@ -1,157 +1,136 @@
 # Voice to Cursor
 
-一个跨平台工具，包含 Cursor/VSCode 插件和手机 App，通过扫码建立连接后，手机端输入的文字和图片可以实时同步到 Cursor 对话框。
+📱 用手机语音/文字输入，实时同步到电脑的 Cursor AI 对话框。支持 Cursor 插件和独立版（可在任何应用中使用）。
 
-## 功能特性
+## ✨ 功能特性
 
-- 📱 **手机端输入**：支持文字输入和图片选择
-- 🔗 **扫码连接**：通过二维码快速建立连接
-- 📋 **实时同步**：内容自动同步到 Cursor 对话框
+- 📝 **实时同步**：手机输入实时同步到电脑
+- 🎤 **语音输入**：配合手机输入法的语音功能使用
 - 🖼️ **图片支持**：支持选择相册图片或拍照发送
-- 🔄 **自动重连**：网络断开后自动尝试重连
+- 📋 **剪贴板互通**：可获取电脑剪贴板内容到手机
+- 🔄 **替换当前行**：支持替换终端当前行内容
+- 🤖 **AI 回复**：开启后 AI 回复会自动发送到手机
+- 💬 **聊天记录**：手机端保存聊天历史，方便查看
+- 🔗 **扫码连接**：通过二维码快速建立连接
 
-## 项目结构
+## 📁 项目结构
 
 ```
 voice-to-cursor/
-├── extension/          # Cursor/VSCode 插件
-│   ├── src/
-│   │   ├── extension.ts      # 插件入口
-│   │   ├── server.ts         # WebSocket 服务器
-│   │   ├── qrcode.ts         # 二维码生成
-│   │   ├── inputHandler.ts   # 输入框内容插入
-│   │   └── utils.ts          # 工具函数
-│   └── package.json
-│
-└── mobile-app/         # React Native App
-    ├── app/
-    │   ├── scanner.tsx       # 扫码页面
-    │   └── input.tsx         # 输入页面
-    ├── services/
-    │   └── websocket.ts       # WebSocket 客户端
-    └── package.json
+├── extension/          # Cursor/VSCode 插件版
+├── standalone/         # 独立版（可在任何应用中使用）
+└── mobile-app/         # React Native 手机 App
 ```
 
-## 安装和使用
+## 🚀 快速开始
 
-### 1. Cursor 插件
+### 方式一：独立版（推荐，可在任何应用中使用）
 
-1. 进入 `extension` 目录：
+1. **启动服务器**
    ```bash
-   cd extension
-   ```
-
-2. 安装依赖：
-   ```bash
+   cd standalone
    npm install
-   ```
-
-3. 编译 TypeScript：
-   ```bash
-   npm run compile
-   ```
-
-4. 在 Cursor/VSCode 中：
-   - 按 `F5` 打开扩展开发宿主窗口
-   - 或使用命令面板运行 "Voice to Cursor: 启动服务"
-
-5. 启动服务后，会显示一个包含二维码的面板
-
-### 2. 手机 App
-
-1. 进入 `mobile-app` 目录：
-   ```bash
-   cd mobile-app
-   ```
-
-2. 安装依赖：
-   ```bash
-   npm install
-   ```
-
-3. 启动开发服务器：
-   ```bash
    npm start
    ```
 
-4. 使用 Expo Go App：
-   - iOS: 在 App Store 下载 Expo Go
-   - Android: 在 Google Play 下载 Expo Go
-   - 扫描终端显示的二维码
+2. **手机连接**
+   - 下载 Expo Go App（[iOS](https://apps.apple.com/app/expo-go/id982107779) / [Android](https://play.google.com/store/apps/details?id=host.exp.exponent)）
+   - 启动手机 App：
+     ```bash
+     cd mobile-app
+     npm install
+     npx expo start
+     ```
+   - 用 Expo Go 扫描终端二维码
+   - 在 App 中扫描服务器显示的二维码连接
 
-5. 或者构建独立应用：
+3. **开始使用**
+   - 手机输入内容，点击「发送」或「仅粘贴」
+   - 内容会粘贴到电脑当前光标位置
+
+### 方式二：Cursor 插件版
+
+1. **安装插件**
    ```bash
-   # iOS
-   npm run ios
-   
-   # Android
-   npm run android
+   cd extension
+   npm install
+   npm run compile
    ```
 
-## 使用流程
+2. **在 Cursor 中启动**
+   - 按 `F5` 或运行 "Voice to Cursor: 启动服务"
+   - 显示二维码面板
 
-1. **启动插件服务**
-   - 在 Cursor 中运行 "Voice to Cursor: 启动服务" 命令
-   - 会显示包含二维码和 WebSocket 地址的面板
+3. **手机连接并使用**（同上）
 
-2. **手机端连接**
-   - 打开手机 App
-   - 扫描二维码或手动输入 WebSocket 地址
-   - 连接成功后自动跳转到输入页面
+## 📱 手机 App 功能
 
-3. **发送内容**
-   - 在输入页面输入文字或选择图片
-   - 点击"发送到 Cursor"按钮
-   - 内容会自动插入到 Cursor 对话框
+| 按钮 | 功能 |
+|------|------|
+| 📋 剪贴板 | 获取电脑剪贴板内容到手机 |
+| 📥 当前行 | 获取终端当前行内容 |
+| 🖼️ 相册 | 选择图片发送 |
+| 📷 拍照 | 拍照发送 |
+| 🗑️ 清空 | 清空输入框 |
+| 📋 粘贴 | 仅粘贴内容到电脑 |
+| 🔄 替换 | 替换终端当前行 |
+| 🚀 发送 | 粘贴并回车发送 |
+| 🤖 ON/OFF | AI 回复开关 |
 
-## 内容插入策略
+### AI 回复功能
 
-插件采用三层降级方案确保内容能够成功插入：
+打开 🤖 开关后：
+- 发送的内容会自动添加 prompt
+- AI 完成任务后会调用接口发送回复到手机
+- 手机聊天记录中可查看 AI 回复
 
-1. **方案1**：剪贴板 + 自动粘贴（优先）
-2. **方案2**：系统级模拟输入（macOS）
-3. **方案3**：写入文件（兜底方案）
-   - 内容写入 `.cursor/voice-input.md`
-   - 可在 Cursor 中使用 `@voice-input.md` 引用
+## ⚙️ 配置说明
 
-## 技术栈
+### 端口
+默认端口 `9527`，可在代码中修改。
 
-### 插件端
-- TypeScript
-- VSCode Extension API
-- WebSocket (ws)
-- QRCode
+### 网络要求
+- 手机和电脑必须在同一局域网
+- 确保端口未被防火墙阻止
 
-### 手机端
-- React Native
-- Expo
-- Expo Camera
-- Expo Image Picker
-- React Navigation
-
-## 注意事项
-
-1. **网络环境**：手机和电脑必须在同一局域网
-2. **防火墙**：确保端口 9527 未被防火墙阻止
-3. **权限**：手机 App 需要相机和相册权限
-4. **图片大小**：大图片会自动压缩后传输
-
-## 开发
+## 🛠️ 开发
 
 ### 插件开发
-
 ```bash
 cd extension
 npm run watch  # 监听模式编译
 ```
 
-### 手机 App 开发
-
+### 独立版开发
 ```bash
-cd mobile-app
-npm start      # 启动 Expo 开发服务器
+cd standalone
+node server.js
 ```
 
-## 许可证
+### 手机 App 开发
+```bash
+cd mobile-app
+npx expo start
+```
+
+### 发送 AI 回复到手机
+```bash
+cd standalone
+node send-reply.js "你的回复内容"
+```
+
+## 📝 更新日志
+
+### v1.0.0
+- ✅ 实时文字同步
+- ✅ 图片发送支持
+- ✅ 扫码快速连接
+- ✅ 独立版支持（可在任何应用中使用）
+- ✅ 剪贴板互通
+- ✅ 替换终端当前行
+- ✅ AI 回复开关
+- ✅ 聊天记录持久化
+
+## 📄 许可证
 
 MIT
