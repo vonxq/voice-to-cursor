@@ -427,7 +427,7 @@ export default function InputScreen() {
 
       {/* 功能按钮区域 */}
       <ScrollView style={styles.actionSection} showsVerticalScrollIndicator={false}>
-        {/* 获取内容 */}
+        {/* 从电脑获取 */}
         <View style={styles.actionGroup}>
           <Text style={styles.groupLabel}>从电脑获取</Text>
           <View style={styles.actionRow}>
@@ -447,6 +447,13 @@ export default function InputScreen() {
               <Text style={styles.actionIcon}>📥</Text>
               <Text style={styles.actionText}>当前行</Text>
             </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* 添加内容 */}
+        <View style={styles.actionGroup}>
+          <Text style={styles.groupLabel}>添加内容</Text>
+          <View style={styles.actionRow}>
             <TouchableOpacity 
               style={[styles.actionBtn, !connected && styles.btnDisabled]}
               onPress={pickImage}
@@ -466,7 +473,7 @@ export default function InputScreen() {
           </View>
         </View>
 
-        {/* 聊天记录（精简显示） */}
+        {/* 聊天记录 */}
         {messages.length > 0 && (
           <View style={styles.historyGroup}>
             <Text style={styles.groupLabel}>最近记录（长按可复制）</Text>
@@ -503,6 +510,7 @@ export default function InputScreen() {
             </ScrollView>
           )}
           
+          {/* 输入框 + 发送按钮 */}
           <View style={styles.inputRow}>
             <TextInput
               ref={inputRef}
@@ -515,7 +523,7 @@ export default function InputScreen() {
               editable={connected && !sending}
             />
             
-            {/* 发送按钮组 */}
+            {/* 核心操作按钮 - 紧挨输入框 */}
             <View style={styles.inputBtns}>
               <TouchableOpacity 
                 style={[styles.inputBtn, styles.btnPaste, (!connected || !hasContent || sending) && styles.btnDisabled]}
@@ -525,13 +533,6 @@ export default function InputScreen() {
                 {sending ? <ActivityIndicator color="#fff" size="small" /> : (
                   <Text style={styles.inputBtnText}>贴</Text>
                 )}
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.inputBtn, styles.btnReplace, (!connected || !hasContent || sending) && styles.btnDisabled]}
-                onPress={replaceCurrentLine}
-                disabled={!connected || !hasContent || sending}
-              >
-                <Text style={styles.inputBtnText}>换</Text>
               </TouchableOpacity>
               <TouchableOpacity 
                 style={[styles.inputBtn, styles.btnSubmit, (!connected || !hasContent || sending) && styles.btnDisabled]}
@@ -544,6 +545,15 @@ export default function InputScreen() {
               </TouchableOpacity>
             </View>
           </View>
+          
+          {/* 替换行按钮 - 单独一行 */}
+          <TouchableOpacity 
+            style={[styles.replaceBtn, (!connected || !hasContent || sending) && styles.btnDisabled]}
+            onPress={replaceCurrentLine}
+            disabled={!connected || !hasContent || sending}
+          >
+            <Text style={styles.replaceBtnText}>🔄 替换当前行</Text>
+          </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
     </View>
@@ -734,25 +744,34 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   inputBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
   },
   btnPaste: {
     backgroundColor: theme.secondary,
   },
-  btnReplace: {
-    backgroundColor: theme.warning,
-  },
   btnSubmit: {
     backgroundColor: theme.success,
   },
   inputBtnText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700',
+  },
+  replaceBtn: {
+    backgroundColor: theme.warning,
+    borderRadius: 8,
+    paddingVertical: 10,
+    marginTop: 10,
+    alignItems: 'center',
+  },
+  replaceBtnText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
   btnDisabled: {
     opacity: 0.4,

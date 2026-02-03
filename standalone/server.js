@@ -95,18 +95,31 @@ async function simulateClearLine() {
   }
 }
 
-// 模拟 Ctrl+A + Ctrl+C（复制当前行）
+// 复制当前行（终端）
 async function simulateCopyLine() {
   if (process.platform === 'darwin') {
-    // 先选中当前行：Ctrl+A 移到行首，Ctrl+E 移到行尾并选中（用 Shift）
-    // 更简单的方式：Ctrl+A 行首，然后 Shift+Ctrl+E 选中到行尾，再 Cmd+C
-    await execAsync(`osascript -e 'tell application "System Events"
-      keystroke "a" using control down
-      delay 0.02
-      keystroke "e" using {shift down, control down}
-      delay 0.02
-      keystroke "c" using command down
-    end tell'`);
+    // 方法：Ctrl+A 到行首，Ctrl+E 到行尾，然后 Shift+Ctrl+A 选中整行，Cmd+C 复制
+    // 或者更简单：Ctrl+A 行首，Ctrl+K 删除到行尾，Ctrl+Y 恢复，然后内容在 kill ring
+    // 最可靠的方法：使用双击+拖拽或三击选中行
+    
+    // 尝试方法1：全选当前输入
+    try {
+      await execAsync(`osascript -e 'tell application "System Events"
+        -- 移到行首
+        keystroke "a" using control down
+        delay 0.05
+        -- 选中到行尾
+        keystroke "e" using {shift down, control down}
+        delay 0.05
+        -- 复制
+        keystroke "c" using command down
+        delay 0.05
+        -- 取消选中（按右箭头）
+        key code 124
+      end tell'`);
+    } catch (e) {
+      console.error('复制当前行失败:', e.message);
+    }
   }
 }
 
