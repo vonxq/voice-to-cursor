@@ -20,7 +20,6 @@ const PORT = 9527;
 
 // 当前同步的文本内容
 let currentText = '';
-let isFirstSync = true;
 
 // 获取本机 IP
 function getLocalIP() {
@@ -86,24 +85,17 @@ async function simulateEnter() {
   }
 }
 
-// 同步文本到当前应用
-async function syncToInput() {
+// 执行粘贴到当前应用
+async function doPaste() {
   if (!currentText) return;
   
   await writeClipboard(currentText);
   
   if (process.platform === 'darwin') {
     try {
-      if (isFirstSync) {
-        await simulatePaste();
-        isFirstSync = false;
-      } else {
-        await simulateSelectAll();
-        await new Promise(resolve => setTimeout(resolve, 30));
-        await simulatePaste();
-      }
+      await simulatePaste();
     } catch (error) {
-      console.error('同步失败:', error.message);
+      console.error('粘贴失败:', error.message);
     }
   }
 }
@@ -117,21 +109,24 @@ async function handleMessage(ws, data) {
     switch (message.type) {
       case 'sync_text':
         currentText = message.content || '';
-        console.log(`[${time}] 📝 同步文本: ${currentText.substring(0, 50)}${currentText.length > 50 ? '...' : ''}`);
-        await syncToInput();
+        // 只同步到剪贴板，不自动粘贴
+        await writeClipboard(currentText);
+        console.log(`[${time}] 📝 已同步到剪贴板: ${currentText.substring(0, 50)}${currentText.length > 50 ? '...' : ''}`);
         ws.send(JSON.stringify({ type: 'ack', action: 'sync_text' }));
         break;
         
       case 'paste_only':
-        console.log(`[${time}] 📋 仅粘贴`);
+        console.log(`[${time}] 📋 执行粘贴`);
+        await doPaste();
         ws.send(JSON.stringify({ type: 'ack', action: 'paste_only' }));
         break;
         
       case 'submit':
-        console.log(`[${time}] 🚀 提交发送`);
+        console.log(`[${time}] 🚀 粘贴并发送`);
+        await doPaste();
+        await new Promise(resolve => setTimeout(resolve, 50));
         await simulateEnter();
         currentText = '';
-        isFirstSync = true;
         ws.send(JSON.stringify({ type: 'ack', action: 'submit' }));
         break;
         
@@ -190,7 +185,6 @@ function startServer() {
   wss.on('connection', (ws) => {
     console.log('\n✅ 手机已连接!\n');
     currentText = '';
-    isFirstSync = true;
     
     ws.on('message', (data) => handleMessage(ws, data));
     
