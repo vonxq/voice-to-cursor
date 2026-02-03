@@ -167,7 +167,7 @@ export default function InputScreen() {
           Alert.alert('错误', data.message || '操作失败');
         } else if (data.type === 'ai_reply') {
           await chatService.addAssistantMessage(data.summary, data.content);
-          scrollToBottom();
+          scrollToTop();
         } else if (data.type === 'clipboard_content') {
           setFetchingClipboard(false);
           if (data.content) {
@@ -194,9 +194,9 @@ export default function InputScreen() {
     }, [])
   );
 
-  const scrollToBottom = () => {
+  const scrollToTop = () => {
     setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: true });
+      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
     }, 100);
   };
 
@@ -321,7 +321,7 @@ export default function InputScreen() {
     
     const imageUris = images.map(img => img.uri);
     await chatService.addUserMessage(text || '[图片]', imageUris.length > 0 ? imageUris : undefined);
-    scrollToBottom();
+    scrollToTop();
     
     wsService.pasteOnly(aiReplyEnabled);
   };
@@ -336,7 +336,7 @@ export default function InputScreen() {
     
     const imageUris = images.map(img => img.uri);
     await chatService.addUserMessage(text || '[图片]', imageUris.length > 0 ? imageUris : undefined);
-    scrollToBottom();
+    scrollToTop();
     
     wsService.submit(aiReplyEnabled);
   };
