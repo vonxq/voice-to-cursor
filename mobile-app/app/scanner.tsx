@@ -20,12 +20,22 @@ export default function ScannerScreen() {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [cameraReady, setCameraReady] = useState(false);
+  const [cameraError, setCameraError] = useState<string | null>(null);
   const navigation = useNavigation();
 
   useEffect(() => {
-    if (!permission?.granted) {
-      requestPermission();
-    }
+    const requestCameraPermission = async () => {
+      try {
+        if (!permission?.granted) {
+          await requestPermission();
+        }
+      } catch (error) {
+        console.error('Camera permission error:', error);
+        setCameraError('无法获取相机权限');
+      }
+    };
+    requestCameraPermission();
   }, []);
 
   const handleBarCodeScanned = async ({ data }: { data: string }) => {
@@ -81,6 +91,25 @@ export default function ScannerScreen() {
     );
   }
 
+  if (cameraError) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.permissionCard}>
+          <Text style={styles.permissionIcon}>⚠️</Text>
+          <Text style={styles.permissionTitle}>相机错误</Text>
+          <Text style={styles.permissionText}>{cameraError}</Text>
+          <TouchableOpacity 
+            style={styles.permissionButton} 
+            // @ts-ignore
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.permissionButtonText}>返回</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <CameraView
@@ -89,6 +118,11 @@ export default function ScannerScreen() {
         onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
         barcodeScannerSettings={{
           barcodeTypes: ['qr'],
+        }}
+        onCameraReady={() => setCameraReady(true)}
+        onMountError={(error) => {
+          console.error('Camera mount error:', error);
+          setCameraError('相机启动失败，请使用手动输入连接');
         }}
       />
       

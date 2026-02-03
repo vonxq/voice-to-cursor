@@ -20,7 +20,8 @@
       "infoPlist": {
         "NSCameraUsageDescription": "需要访问相机以扫描二维码连接 Cursor",
         "NSPhotoLibraryUsageDescription": "需要访问相册以选择图片发送到 Cursor"
-      }
+      },
+      "bundleIdentifier": "com.vonxq.voice-to-cursor"
     },
     "android": {
       "adaptiveIcon": {
@@ -28,9 +29,11 @@
         "backgroundColor": "#ffffff"
       },
       "permissions": [
-        "CAMERA",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE"
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
       ]
     },
     "web": {
