@@ -15,6 +15,8 @@ import {
   AppStateStatus,
   InteractionManager,
   FlatList,
+  ActionSheetIOS,
+  Clipboard,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as ImagePicker from 'expo-image-picker';
@@ -346,13 +348,83 @@ export default function InputScreen() {
     );
   };
 
+  const handleMessageLongPress = (item: ChatMessage) => {
+    const content = item.type === 'user' ? item.content : (item.summary || item.content);
+    
+    if (Platform.OS === 'ios') {
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: ['取消', '复制', '粘贴到输入框', '重新发送'],
+          cancelButtonIndex: 0,
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 1) {
+            // 复制
+            Clipboard.setString(content);
+            Alert.alert('已复制');
+          } else if (buttonIndex === 2) {
+            // 粘贴到输入框
+            setText(prev => prev + content);
+            if (connected && wsService.isConnected()) {
+              wsService.syncText(textRef.current + content);
+            }
+          } else if (buttonIndex === 3) {
+            // 重新发送
+            setText(content);
+            if (connected && wsService.isConnected()) {
+              wsService.syncText(content);
+            }
+          }
+        }
+      );
+    } else {
+      // Android
+      Alert.alert(
+        '消息操作',
+        '',
+        [
+          { text: '取消', style: 'cancel' },
+          { 
+            text: '复制', 
+            onPress: () => {
+              Clipboard.setString(content);
+              Alert.alert('已复制');
+            }
+          },
+          { 
+            text: '粘贴到输入框', 
+            onPress: () => {
+              setText(prev => prev + content);
+              if (connected && wsService.isConnected()) {
+                wsService.syncText(textRef.current + content);
+              }
+            }
+          },
+          { 
+            text: '重新发送', 
+            onPress: () => {
+              setText(content);
+              if (connected && wsService.isConnected()) {
+                wsService.syncText(content);
+              }
+            }
+          },
+        ]
+      );
+    }
+  };
+
   const renderMessage = ({ item }: { item: ChatMessage }) => {
     const isUser = item.type === 'user';
     
     return (
       <View style={[styles.messageRow, isUser ? styles.messageRowUser : styles.messageRowAssistant]}>
         {!isUser && <View style={styles.avatarAssistant}><Text style={styles.avatarText}>AI</Text></View>}
-        <View style={[styles.messageBubble, isUser ? styles.bubbleUser : styles.bubbleAssistant]}>
+        <TouchableOpacity 
+          style={[styles.messageBubble, isUser ? styles.bubbleUser : styles.bubbleAssistant]}
+          onLongPress={() => handleMessageLongPress(item)}
+          activeOpacity={0.8}
+        >
           <Text style={[styles.messageText, isUser ? styles.textUser : styles.textAssistant]}>
             {isUser ? item.content : (item.summary || item.content)}
           </Text>
@@ -369,7 +441,7 @@ export default function InputScreen() {
           <Text style={styles.messageTime}>
             {new Date(item.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
           </Text>
-        </View>
+        </TouchableOpacity>
         {isUser && <View style={styles.avatarUser}><Text style={styles.avatarText}>我</Text></View>}
       </View>
     );
