@@ -609,29 +609,31 @@ const styles = StyleSheet.create({
   // 功能按钮区域
   actionSection: {
     backgroundColor: theme.surface,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: theme.border,
   },
   actionRow: {
     flexDirection: 'row',
-    gap: 8,
+    justifyContent: 'flex-start',
+    gap: 12,
   },
   actionBtn: {
-    flex: 1,
-    backgroundColor: theme.surfaceLight,
-    borderRadius: 10,
-    paddingVertical: 12,
+    flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: theme.surfaceLight,
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    gap: 4,
   },
   actionIcon: {
-    fontSize: 20,
-    marginBottom: 4,
+    fontSize: 14,
   },
   actionText: {
     color: theme.text,
-    fontSize: 11,
+    fontSize: 12,
   },
   
   // 输入区域
