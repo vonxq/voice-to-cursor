@@ -1,0 +1,47 @@
+# Node modules
+node_modules/
+**/node_modules/
+
+# Build outputs
+out/
+dist/
+*.vsix
+
+# TypeScript
+*.tsbuildinfo
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode-test/
+.vscode/
+*.code-workspace
+
+# Generated files
+.cursor/voice-input.md
+.cursor/voice-images/
+
+# Environment
+.env
+.env.local
+
+# Expo
+mobile-app/.expo/
+mobile-app/dist/
+mobile-app/web-build/
+mobile-app/*.jks
+mobile-app/*.p8
+mobile-app/*.p12
+mobile-app/*.key
+mobile-app/*.mobileprovision
+mobile-app/*.orig.*
+mobile-app/web-build/
+
+# Metro
+mobile-app/.metro-health-check*

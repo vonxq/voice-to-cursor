@@ -1,0 +1,52 @@
+{
+  "name": "voice-to-cursor",
+  "displayName": "Voice to Cursor",
+  "description": "手机端语音/文字输入实时同步到 Cursor",
+  "version": "0.0.1",
+  "publisher": "vonxq",
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:voiceToCursor.start",
+    "onCommand:voiceToCursor.stop",
+    "onCommand:voiceToCursor.sendReply"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "voiceToCursor.start",
+        "title": "Voice to Cursor: 启动服务"
+      },
+      {
+        "command": "voiceToCursor.stop",
+        "title": "Voice to Cursor: 停止服务"
+      },
+      {
+        "command": "voiceToCursor.sendReply",
+        "title": "Voice to Cursor: 发送回复到手机端"
+      }
+    ]
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "lint": "eslint src --ext ts"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/qrcode": "^1.5.5",
+    "@types/vscode": "^1.85.0",
+    "@types/ws": "^8.5.10",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.3",
+    "ws": "^8.16.0"
+  }
+}
