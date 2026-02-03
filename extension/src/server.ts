@@ -81,31 +81,42 @@ export class VoiceToCursorServer {
           // 根据消息类型处理
           switch (message.type) {
             case 'sync_text':
+              this.sendLog('received', 'sync_text', (message as any).content?.substring(0, 50) + ((message as any).content?.length > 50 ? '...' : ''));
               await handleSyncText(message);
               ws.send(JSON.stringify({ type: 'ack', action: 'sync_text' }));
+              this.sendLog('sent', 'ack', 'sync_text');
               break;
               
             case 'sync_image_add':
+              this.sendLog('received', 'sync_image_add', `图片ID: ${(message as any).id}`);
               await handleSyncImageAdd(message);
               ws.send(JSON.stringify({ type: 'ack', action: 'sync_image_add', id: message.id }));
+              this.sendLog('sent', 'ack', 'sync_image_add');
               break;
               
             case 'sync_image_remove':
+              this.sendLog('received', 'sync_image_remove', `图片ID: ${(message as any).id}`);
               await handleSyncImageRemove(message);
               ws.send(JSON.stringify({ type: 'ack', action: 'sync_image_remove', id: message.id }));
+              this.sendLog('sent', 'ack', 'sync_image_remove');
               break;
               
             case 'paste_only':
+              this.sendLog('received', 'paste_only', '仅粘贴');
               await handlePasteOnly();
               ws.send(JSON.stringify({ type: 'ack', action: 'paste_only' }));
+              this.sendLog('sent', 'ack', 'paste_only');
               break;
               
             case 'submit':
+              this.sendLog('received', 'submit', '提交发送');
               await handleSubmit();
               ws.send(JSON.stringify({ type: 'ack', action: 'submit' }));
+              this.sendLog('sent', 'ack', 'submit');
               break;
               
             case 'get_clipboard':
+              this.sendLog('received', 'get_clipboard', '获取剪贴板');
               // 获取电脑剪贴板内容发送到手机端
               const clipboardContent = await vscode.env.clipboard.readText();
               ws.send(JSON.stringify({ 
@@ -113,28 +124,35 @@ export class VoiceToCursorServer {
                 content: clipboardContent,
                 timestamp: Date.now()
               }));
+              this.sendLog('sent', 'clipboard_content', clipboardContent.substring(0, 50) + (clipboardContent.length > 50 ? '...' : ''));
               break;
               
             // 兼容旧协议
             case 'text':
             case 'image':
+              this.sendLog('received', message.type, '旧协议');
               await insertContent(message);
               ws.send(JSON.stringify({ type: 'ack', timestamp: Date.now() }));
+              this.sendLog('sent', 'ack', '旧协议');
               break;
               
             default:
-              console.log('[Voice to Cursor] 未知消息类型:', (message as any).type);
+              const unknownType = (message as any).type;
+              console.log('[Voice to Cursor] 未知消息类型:', unknownType);
+              this.sendLog('error', '未知消息类型', unknownType);
               ws.send(JSON.stringify({ 
                 type: 'error', 
-                message: `无效的消息格式: ${(message as any).type}` 
+                message: `无效的消息格式: ${unknownType}` 
               }));
           }
           
         } catch (error) {
           console.error('处理消息失败:', error);
+          const errorMsg = error instanceof Error ? error.message : '处理消息失败';
+          this.sendLog('error', '处理失败', errorMsg);
           ws.send(JSON.stringify({ 
             type: 'error', 
-            message: error instanceof Error ? error.message : '处理消息失败' 
+            message: errorMsg
           }));
         }
       });
@@ -196,6 +214,20 @@ export class VoiceToCursorServer {
       this.panel.webview.postMessage({
         type: 'connection',
         connected
+      });
+    }
+  }
+  
+  /**
+   * 发送日志到面板
+   */
+  private sendLog(logType: 'received' | 'sent' | 'error', content: string, details?: string): void {
+    if (this.panel) {
+      this.panel.webview.postMessage({
+        type: 'log',
+        logType,
+        content,
+        details
       });
     }
   }
