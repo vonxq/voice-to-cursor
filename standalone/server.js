@@ -190,6 +190,7 @@ async function handleMessage(ws, data) {
         if (pasteNeedAiReply && currentText.trim()) {
           const wrappedContent = wrapPromptWithSummaryRequest(currentText);
           await writeClipboard(wrappedContent);
+          await new Promise(resolve => setTimeout(resolve, 100)); // 等待剪贴板写入完成
           console.log(`[${time}] 📝 已包装 prompt`);
         }
         
@@ -205,6 +206,7 @@ async function handleMessage(ws, data) {
         if (submitNeedAiReply && currentText.trim()) {
           const wrappedContent = wrapPromptWithSummaryRequest(currentText);
           await writeClipboard(wrappedContent);
+          await new Promise(resolve => setTimeout(resolve, 100)); // 等待剪贴板写入完成
           console.log(`[${time}] 📝 已包装 prompt`);
         }
         
