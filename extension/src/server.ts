@@ -102,15 +102,17 @@ export class VoiceToCursorServer {
               break;
               
             case 'paste_only':
-              this.sendLog('received', 'paste_only', '仅粘贴');
-              await handlePasteOnly();
+              const pasteNeedAiReply = (message as any).needAiReply || false;
+              this.sendLog('received', 'paste_only', `仅粘贴${pasteNeedAiReply ? '（需AI回复）' : ''}`);
+              await handlePasteOnly(pasteNeedAiReply);
               ws.send(JSON.stringify({ type: 'ack', action: 'paste_only' }));
               this.sendLog('sent', 'ack', 'paste_only');
               break;
               
             case 'submit':
-              this.sendLog('received', 'submit', '提交发送');
-              await handleSubmit();
+              const submitNeedAiReply = (message as any).needAiReply || false;
+              this.sendLog('received', 'submit', `提交发送${submitNeedAiReply ? '（需AI回复）' : ''}`);
+              await handleSubmit(submitNeedAiReply);
               ws.send(JSON.stringify({ type: 'ack', action: 'submit' }));
               this.sendLog('sent', 'ack', 'submit');
               break;

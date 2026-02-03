@@ -31,11 +31,13 @@ export interface SyncImageRemoveMessage {
 
 export interface SubmitMessage {
   type: 'submit';
+  needAiReply?: boolean;
   timestamp?: number;
 }
 
 export interface PasteOnlyMessage {
   type: 'paste_only';
+  needAiReply?: boolean;
   timestamp?: number;
 }
 
@@ -118,17 +120,43 @@ export async function handleSyncImageRemove(message: SyncImageRemoveMessage): Pr
 /**
  * 处理仅粘贴（不提交）
  */
-export async function handlePasteOnly(): Promise<void> {
-  // 确保内容已同步到输入框（不清空状态，用户可能还要继续编辑）
-  vscode.window.showInformationMessage('已粘贴到输入框');
+export async function handlePasteOnly(needAiReply: boolean = false): Promise<void> {
+  // 如果需要 AI 回复，替换内容为包装后的 prompt
+  if (needAiReply && currentText.trim()) {
+    const wrappedContent = wrapPromptWithSummaryRequest(currentText);
+    let content = wrappedContent;
+    
+    // 添加图片引用
+    if (currentImages.size > 0) {
+      const imageRefs = Array.from(currentImages.values())
+        .map(p => `![image](${p})`)
+        .join('\n');
+      content = content + '\n' + imageRefs;
+    }
+    
+    // 写入剪贴板并替换输入框内容
+    await vscode.env.clipboard.writeText(content);
+    
+    if (process.platform === 'darwin') {
+      try {
+        await execAsync(`osascript -e 'tell application "System Events" to keystroke "a" using command down'`);
+        await new Promise(resolve => setTimeout(resolve, 30));
+        await execAsync(`osascript -e 'tell application "System Events" to keystroke "v" using command down'`);
+      } catch (error) {
+        console.error('替换内容失败:', error);
+      }
+    }
+  }
+  
+  vscode.window.showInformationMessage(needAiReply ? '已粘贴（含AI回复请求）' : '已粘贴到输入框');
 }
 
 /**
  * 处理提交/发送
  */
-export async function handleSubmit(): Promise<void> {
-  // 在提交前，先用包装后的 prompt 替换当前内容
-  if (currentText.trim()) {
+export async function handleSubmit(needAiReply: boolean = false): Promise<void> {
+  // 如果需要 AI 回复，在提交前用包装后的 prompt 替换当前内容
+  if (needAiReply && currentText.trim()) {
     const wrappedContent = wrapPromptWithSummaryRequest(currentText);
     let content = wrappedContent;
     
@@ -166,7 +194,7 @@ export async function handleSubmit(): Promise<void> {
   currentImages.clear();
   isFirstSync = true;
   
-  vscode.window.showInformationMessage('已发送');
+  vscode.window.showInformationMessage(needAiReply ? '已发送（等待AI回复）' : '已发送');
 }
 
 /**

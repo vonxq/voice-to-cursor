@@ -28,6 +28,7 @@ import { theme } from '../constants/theme';
 
 const STORAGE_KEY_TEXT = 'voice_to_cursor_draft_text';
 const STORAGE_KEY_IMAGES = 'voice_to_cursor_draft_images';
+const STORAGE_KEY_AI_REPLY = 'voice_to_cursor_ai_reply';
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 interface ImageData {
@@ -46,6 +47,7 @@ export default function InputScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [fetchingClipboard, setFetchingClipboard] = useState(false);
+  const [aiReplyEnabled, setAiReplyEnabled] = useState(false);
   
   const navigation = useNavigation();
   const inputRef = useRef<TextInput>(null);
@@ -67,9 +69,10 @@ export default function InputScreen() {
         await chatService.init();
         setMessages(chatService.getMessages());
         
-        const [savedText, savedImages] = await Promise.all([
+        const [savedText, savedImages, savedAiReply] = await Promise.all([
           AsyncStorage.getItem(STORAGE_KEY_TEXT),
           AsyncStorage.getItem(STORAGE_KEY_IMAGES),
+          AsyncStorage.getItem(STORAGE_KEY_AI_REPLY),
         ]);
         
         if (savedText) setText(savedText);
@@ -77,6 +80,7 @@ export default function InputScreen() {
           const parsed = JSON.parse(savedImages);
           if (Array.isArray(parsed)) setImages(parsed);
         }
+        if (savedAiReply) setAiReplyEnabled(savedAiReply === 'true');
       } catch (error) {
         console.log('初始化失败:', error);
       } finally {
@@ -271,6 +275,12 @@ export default function InputScreen() {
     }
   };
 
+  const toggleAiReply = async () => {
+    const newValue = !aiReplyEnabled;
+    setAiReplyEnabled(newValue);
+    await AsyncStorage.setItem(STORAGE_KEY_AI_REPLY, String(newValue));
+  };
+
   const fetchClipboardFromPC = () => {
     if (!connected) {
       Alert.alert('提示', '请先连接电脑');
@@ -313,7 +323,7 @@ export default function InputScreen() {
     await chatService.addUserMessage(text || '[图片]', imageUris.length > 0 ? imageUris : undefined);
     scrollToBottom();
     
-    wsService.pasteOnly();
+    wsService.pasteOnly(aiReplyEnabled);
   };
 
   const handleSubmit = async () => {
@@ -328,7 +338,7 @@ export default function InputScreen() {
     await chatService.addUserMessage(text || '[图片]', imageUris.length > 0 ? imageUris : undefined);
     scrollToBottom();
     
-    wsService.submit();
+    wsService.submit(aiReplyEnabled);
   };
 
   const goBack = () => {
@@ -385,11 +395,14 @@ export default function InputScreen() {
         onLongPress={() => handleMessageLongPress(item)}
         activeOpacity={0.7}
       >
+        <View style={styles.msgHeader}>
+          <Text style={styles.msgIcon}>{isUser ? '👤' : '🤖'}</Text>
+          <Text style={styles.msgTime}>
+            {new Date(item.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+          </Text>
+        </View>
         <Text style={styles.msgText} numberOfLines={2}>
           {isUser ? item.content : (item.summary || item.content)}
-        </Text>
-        <Text style={styles.msgTime}>
-          {new Date(item.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
         </Text>
       </TouchableOpacity>
     );
@@ -418,6 +431,12 @@ export default function InputScreen() {
           <Text style={styles.headerTitle}>{connected ? '已连接' : '未连接'}</Text>
         </View>
         <View style={styles.headerRight}>
+          <TouchableOpacity 
+            style={[styles.aiToggle, aiReplyEnabled && styles.aiToggleOn]}
+            onPress={toggleAiReply}
+          >
+            <Text style={styles.aiToggleText}>🤖 {aiReplyEnabled ? 'ON' : 'OFF'}</Text>
+          </TouchableOpacity>
           {!connected && (
             <TouchableOpacity style={styles.headerBtn} onPress={goBack}>
               <Text style={styles.headerBtnText}>连接</Text>
@@ -589,7 +608,21 @@ const styles = StyleSheet.create({
   headerRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
+  },
+  aiToggle: {
+    backgroundColor: theme.surfaceLight,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  aiToggleOn: {
+    backgroundColor: theme.primary,
+  },
+  aiToggleText: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '500',
   },
   headerBtn: {
     backgroundColor: theme.primary,
@@ -725,13 +758,23 @@ const styles = StyleSheet.create({
   },
   msgItem: {
     backgroundColor: theme.surfaceLight,
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 8,
     borderRadius: 10,
     maxWidth: SCREEN_WIDTH * 0.6,
+    minWidth: 80,
   },
   msgItemUser: {
     backgroundColor: theme.primary,
+  },
+  msgHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  msgIcon: {
+    fontSize: 12,
   },
   msgText: {
     color: theme.text,
@@ -740,9 +783,7 @@ const styles = StyleSheet.create({
   },
   msgTime: {
     color: 'rgba(255,255,255,0.5)',
-    fontSize: 10,
-    marginTop: 4,
-    textAlign: 'right',
+    fontSize: 9,
   },
   btnDisabled: {
     opacity: 0.4,

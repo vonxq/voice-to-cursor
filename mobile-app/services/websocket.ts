@@ -173,13 +173,14 @@ export class WebSocketService {
   /**
    * 仅粘贴（不提交）
    */
-  pasteOnly(): void {
+  pasteOnly(needAiReply: boolean = false): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       throw new Error('WebSocket 未连接');
     }
     
     const message = {
       type: 'paste_only',
+      needAiReply,
       timestamp: Date.now()
     };
     
@@ -189,13 +190,14 @@ export class WebSocketService {
   /**
    * 提交/发送
    */
-  submit(): void {
+  submit(needAiReply: boolean = false): void {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       throw new Error('WebSocket 未连接');
     }
     
     const message = {
       type: 'submit',
+      needAiReply,
       timestamp: Date.now()
     };
     
