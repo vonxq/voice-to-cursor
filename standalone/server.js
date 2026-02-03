@@ -85,6 +85,31 @@ async function simulateEnter() {
   }
 }
 
+// 模拟 Ctrl+U（删除当前行，终端常用）
+async function simulateClearLine() {
+  if (process.platform === 'darwin') {
+    // Ctrl+A 移到行首，Ctrl+K 删除到行尾
+    await execAsync(`osascript -e 'tell application "System Events" to keystroke "a" using control down'`);
+    await new Promise(resolve => setTimeout(resolve, 20));
+    await execAsync(`osascript -e 'tell application "System Events" to keystroke "k" using control down'`);
+  }
+}
+
+// 模拟 Ctrl+A + Ctrl+C（复制当前行）
+async function simulateCopyLine() {
+  if (process.platform === 'darwin') {
+    // 先选中当前行：Ctrl+A 移到行首，Ctrl+E 移到行尾并选中（用 Shift）
+    // 更简单的方式：Ctrl+A 行首，然后 Shift+Ctrl+E 选中到行尾，再 Cmd+C
+    await execAsync(`osascript -e 'tell application "System Events"
+      keystroke "a" using control down
+      delay 0.02
+      keystroke "e" using {shift down, control down}
+      delay 0.02
+      keystroke "c" using command down
+    end tell'`);
+  }
+}
+
 // 执行粘贴到当前应用
 async function doPaste() {
   if (!currentText) return;
@@ -139,6 +164,29 @@ async function handleMessage(ws, data) {
           timestamp: Date.now()
         }));
         console.log(`[${time}] → 发送剪贴板内容: ${clipboardContent.substring(0, 30)}...`);
+        break;
+        
+      case 'get_current_line':
+        // 获取当前行内容（复制当前行到剪贴板）
+        console.log(`[${time}] 📋 获取当前行`);
+        await simulateCopyLine();
+        await new Promise(resolve => setTimeout(resolve, 100));
+        const lineContent = await readClipboard();
+        ws.send(JSON.stringify({ 
+          type: 'current_line_content', 
+          content: lineContent.trim(),
+          timestamp: Date.now()
+        }));
+        console.log(`[${time}] → 当前行内容: ${lineContent.trim().substring(0, 50)}...`);
+        break;
+        
+      case 'replace_line':
+        // 替换当前行（清除当前行 + 粘贴新内容）
+        console.log(`[${time}] 🔄 替换当前行`);
+        await simulateClearLine();
+        await new Promise(resolve => setTimeout(resolve, 50));
+        await doPaste();
+        ws.send(JSON.stringify({ type: 'ack', action: 'replace_line' }));
         break;
         
       case 'sync_image_add':

@@ -189,6 +189,17 @@ export default function InputScreen() {
           } else {
             Alert.alert('提示', '电脑剪贴板为空');
           }
+        } else if (data.type === 'current_line_content') {
+          // 接收电脑当前行内容
+          if (data.content) {
+            setText(data.content);
+            if (wsService.isConnected()) {
+              wsService.syncText(data.content);
+            }
+            Alert.alert('已获取', '当前行内容已填入输入框，修改后点击"替换"');
+          } else {
+            Alert.alert('提示', '当前行为空');
+          }
         }
       });
       
@@ -287,6 +298,32 @@ export default function InputScreen() {
     setFetchingClipboard(true);
     wsService.getClipboard();
     setTimeout(() => setFetchingClipboard(false), 3000);
+  };
+
+  const fetchCurrentLine = () => {
+    if (!connected) {
+      Alert.alert('提示', '请先连接电脑');
+      return;
+    }
+    setShowImagePicker(false);
+    wsService.getCurrentLine();
+  };
+
+  const replaceCurrentLine = () => {
+    if (!connected) {
+      Alert.alert('提示', '请先连接电脑');
+      return;
+    }
+    if (!text.trim()) {
+      Alert.alert('提示', '请先输入内容');
+      return;
+    }
+    setShowImagePicker(false);
+    wsService.replaceLine();
+    // 清空输入
+    setText('');
+    setImages([]);
+    AsyncStorage.multiRemove([STORAGE_KEY_TEXT, STORAGE_KEY_IMAGES]).catch(console.log);
   };
 
   const handlePasteOnly = async () => {
@@ -599,8 +636,22 @@ export default function InputScreen() {
                 >
                   <Text style={styles.pickerIcon}>📋</Text>
                   <Text style={styles.pickerText}>
-                    {fetchingClipboard ? '获取中...' : '粘贴电脑内容'}
+                    {fetchingClipboard ? '获取中...' : '获取剪贴板'}
                   </Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.pickerOption} 
+                  onPress={fetchCurrentLine}
+                >
+                  <Text style={styles.pickerIcon}>📥</Text>
+                  <Text style={styles.pickerText}>获取当前行</Text>
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  style={styles.pickerOption} 
+                  onPress={replaceCurrentLine}
+                >
+                  <Text style={styles.pickerIcon}>🔄</Text>
+                  <Text style={styles.pickerText}>替换当前行</Text>
                 </TouchableOpacity>
                 <TouchableOpacity 
                   style={[styles.pickerOption, styles.pickerCancel]} 

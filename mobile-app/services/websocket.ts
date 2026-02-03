@@ -218,6 +218,38 @@ export class WebSocketService {
     this.ws.send(JSON.stringify(message));
   }
   
+  /**
+   * 获取电脑当前行内容（终端等）
+   */
+  getCurrentLine(): void {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      throw new Error('WebSocket 未连接');
+    }
+    
+    const message = {
+      type: 'get_current_line',
+      timestamp: Date.now()
+    };
+    
+    this.ws.send(JSON.stringify(message));
+  }
+  
+  /**
+   * 替换电脑当前行（清除当前行 + 粘贴）
+   */
+  replaceLine(): void {
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      throw new Error('WebSocket 未连接');
+    }
+    
+    const message = {
+      type: 'replace_line',
+      timestamp: Date.now()
+    };
+    
+    this.ws.send(JSON.stringify(message));
+  }
+  
   // ============ 兼容旧方法 ============
   
   /**
