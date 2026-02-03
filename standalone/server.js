@@ -49,6 +49,7 @@ async function writeClipboard(text) {
   const tmpFile = path.join(os.tmpdir(), `clipboard_${Date.now()}.txt`);
   
   try {
+    console.log("writeClipboard", text)
     // 写入临时文件
     fs.writeFileSync(tmpFile, text, 'utf8');
     
@@ -257,6 +258,19 @@ async function handleMessage(ws, data) {
   }
 }
 
+// 所有连接的客户端
+let clients = new Set();
+
+// 广播消息给所有客户端
+function broadcast(message) {
+  const data = JSON.stringify(message);
+  clients.forEach(client => {
+    if (client.readyState === 1) { // WebSocket.OPEN
+      client.send(data);
+    }
+  });
+}
+
 // 启动服务器
 function startServer() {
   const ip = getLocalIP();
@@ -276,23 +290,41 @@ function startServer() {
   
   console.log('\n⏳ 等待手机连接...\n');
   console.log('提示: 连接后，在任意输入框中使用');
+  console.log('发送AI回复: node send-reply.js "内容"');
   console.log('按 Ctrl+C 停止服务\n');
   console.log('─'.repeat(50));
   
   const wss = new WebSocketServer({ port: PORT });
   
   wss.on('connection', (ws) => {
-    console.log('\n✅ 手机已连接!\n');
+    clients.add(ws);
+    console.log('\n✅ 客户端已连接! (当前连接数:', clients.size, ')\n');
     currentText = '';
     
-    ws.on('message', (data) => handleMessage(ws, data));
+    ws.on('message', (data) => {
+      try {
+        const msg = JSON.parse(data.toString());
+        // 如果是 ai_reply，广播给所有其他客户端
+        if (msg.type === 'ai_reply') {
+          const time = new Date().toLocaleTimeString('zh-CN');
+          console.log(`[${time}] 🤖 AI回复: ${msg.summary?.substring(0, 50)}...`);
+          broadcast(msg);
+        } else {
+          handleMessage(ws, data);
+        }
+      } catch (e) {
+        handleMessage(ws, data);
+      }
+    });
     
     ws.on('close', () => {
-      console.log('\n❌ 手机已断开\n');
+      clients.delete(ws);
+      console.log('\n❌ 客户端已断开 (当前连接数:', clients.size, ')\n');
     });
     
     ws.on('error', (error) => {
       console.error('WebSocket 错误:', error.message);
+      clients.delete(ws);
     });
   });
   
