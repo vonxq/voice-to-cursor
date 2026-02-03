@@ -21,6 +21,17 @@ const PORT = 9527;
 // 当前同步的文本内容
 let currentText = '';
 
+// Prompt 包装模板 - 要求 AI 先完成任务，然后返回简短摘要
+const SUMMARY_PROMPT_SUFFIX = `
+
+【重要：请先完成上述任务。完成后，在回复的最后一行用以下格式返回一句话摘要（不超过50字），方便我在手机端查看：
+[摘要: 简要描述你完成了什么]】`;
+
+// 包装 prompt，添加摘要请求
+function wrapPromptWithSummaryRequest(text) {
+  return text + SUMMARY_PROMPT_SUFFIX;
+}
+
 // 获取本机 IP
 function getLocalIP() {
   const interfaces = os.networkInterfaces();
@@ -154,13 +165,31 @@ async function handleMessage(ws, data) {
         break;
         
       case 'paste_only':
-        console.log(`[${time}] 📋 执行粘贴`);
+        const pasteNeedAiReply = message.needAiReply === true;
+        console.log(`[${time}] 📋 执行粘贴${pasteNeedAiReply ? '（需AI回复）' : ''}`);
+        
+        // 如果需要 AI 回复，先包装 prompt 再写入剪贴板
+        if (pasteNeedAiReply && currentText.trim()) {
+          const wrappedContent = wrapPromptWithSummaryRequest(currentText);
+          await writeClipboard(wrappedContent);
+          console.log(`[${time}] 📝 已包装 prompt`);
+        }
+        
         await doPaste();
         ws.send(JSON.stringify({ type: 'ack', action: 'paste_only' }));
         break;
         
       case 'submit':
-        console.log(`[${time}] 🚀 粘贴并发送`);
+        const submitNeedAiReply = message.needAiReply === true;
+        console.log(`[${time}] 🚀 粘贴并发送${submitNeedAiReply ? '（需AI回复）' : ''}`);
+        
+        // 如果需要 AI 回复，先包装 prompt 再写入剪贴板
+        if (submitNeedAiReply && currentText.trim()) {
+          const wrappedContent = wrapPromptWithSummaryRequest(currentText);
+          await writeClipboard(wrappedContent);
+          console.log(`[${time}] 📝 已包装 prompt`);
+        }
+        
         await doPaste();
         await new Promise(resolve => setTimeout(resolve, 50));
         await simulateEnter();
