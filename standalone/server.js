@@ -19,21 +19,43 @@ const os = require('os');
 const qrcode = require('qrcode-terminal');
 
 const execAsync = promisify(exec);
-const PORT = 9527;
+
+// 端口配置：命令行参数 > 环境变量 > 自动查找
+function getPreferredPort() {
+  const args = process.argv.slice(2);
+  for (let i = 0; i < args.length; i++) {
+    if (args[i].startsWith('--port=')) {
+      return parseInt(args[i].split('=')[1], 10);
+    }
+    if ((args[i] === '--port' || args[i] === '-p') && args[i + 1]) {
+      return parseInt(args[i + 1], 10);
+    }
+  }
+  if (process.env.PORT) {
+    return parseInt(process.env.PORT, 10);
+  }
+  return 9527; // 默认首选端口
+}
+
+// 实际使用的端口（服务器启动后更新）
+let PORT = getPreferredPort();
 
 // 当前同步的文本内容
 let currentText = '';
 
-// Prompt 包装模板 - 要求 AI 先完成任务，然后发送回复到手机
-const SUMMARY_PROMPT_SUFFIX = `
+// 获取 AI 回复的 prompt 后缀
+function getSummaryPromptSuffix() {
+  const portArg = PORT !== 9527 ? ` --port=${PORT}` : '';
+  return `
 
 【重要：完成任务后，请执行以下命令将回复发送到我的手机：
-cd /Users/vonxq/code/cursor/voice-to-cursor/standalone && node send-reply.js "你的简短回复摘要（不超过50字）"
+cd ${__dirname} && node send-reply.js "你的简短回复摘要（不超过50字）"${portArg}
 】`;
+}
 
 // 包装 prompt，添加摘要请求
 function wrapPromptWithSummaryRequest(text) {
-  return text + SUMMARY_PROMPT_SUFFIX;
+  return text + getSummaryPromptSuffix();
 }
 
 // 获取本机 IP
@@ -278,15 +300,9 @@ function broadcast(message) {
   });
 }
 
-// 启动服务器
-function startServer() {
-  const ip = getLocalIP();
-  const wsUrl = `ws://${ip}:${PORT}`;
-  const webUrl = `http://${ip}:${PORT}`;
-  
-  // 创建 HTTP 服务器提供 Web 页面
-  const server = http.createServer((req, res) => {
-    // 只处理根路径和 index.html
+// 创建 HTTP 服务器
+function createHttpServer() {
+  return http.createServer((req, res) => {
     if (req.url === '/' || req.url === '/index.html') {
       const htmlPath = path.join(__dirname, 'web', 'index.html');
       fs.readFile(htmlPath, 'utf8', (err, data) => {
@@ -303,6 +319,12 @@ function startServer() {
       res.end('Not Found');
     }
   });
+}
+
+// 显示启动信息和二维码
+function showStartupInfo(ip, port) {
+  const wsUrl = `ws://${ip}:${port}`;
+  const webUrl = `http://${ip}:${port}`;
   
   console.log('\n');
   console.log('╔═══════════════════════════════════════════════════╗');
@@ -313,22 +335,18 @@ function startServer() {
   console.log(`║  Web 版本: ${webUrl.padEnd(38)}║`);
   console.log('╚═══════════════════════════════════════════════════╝');
   console.log('\n📱 方式1: 用手机 App 扫描下方二维码:\n');
-  
-  // 显示 WebSocket 二维码
   qrcode.generate(wsUrl, { small: true });
-  
   console.log('\n📱 方式2: 用手机浏览器扫描下方二维码 (Web版):\n');
-  
-  // 显示 Web 页面二维码
   qrcode.generate(webUrl, { small: true });
-  
   console.log('\n⏳ 等待手机连接...\n');
   console.log('提示: 连接后，在任意输入框中使用');
-  console.log('发送AI回复: node send-reply.js "内容"');
+  console.log(`发送AI回复: node send-reply.js "内容"${port !== 9527 ? ` --port=${port}` : ''}`);
   console.log('按 Ctrl+C 停止服务\n');
   console.log('─'.repeat(50));
-  
-  // WebSocket 服务器挂载到 HTTP 服务器
+}
+
+// 设置 WebSocket 服务器
+function setupWebSocket(server) {
   const wss = new WebSocketServer({ server });
   
   wss.on('connection', (ws) => {
@@ -339,7 +357,6 @@ function startServer() {
     ws.on('message', (data) => {
       try {
         const msg = JSON.parse(data.toString());
-        // 如果是 ai_reply，广播给所有其他客户端
         if (msg.type === 'ai_reply') {
           const time = new Date().toLocaleTimeString('zh-CN');
           console.log(`[${time}] 🤖 AI回复: ${msg.summary?.substring(0, 50)}...`);
@@ -363,17 +380,54 @@ function startServer() {
     });
   });
   
-  server.on('error', (error) => {
-    if (error.code === 'EADDRINUSE') {
-      console.error(`\n❌ 端口 ${PORT} 已被占用，请先关闭其他服务\n`);
-    } else {
-      console.error('服务器错误:', error.message);
-    }
-    process.exit(1);
+  return wss;
+}
+
+// 尝试在指定端口启动服务器
+function tryListen(server, port, maxAttempts = 10) {
+  return new Promise((resolve, reject) => {
+    let attempts = 0;
+    
+    const tryPort = (currentPort) => {
+      attempts++;
+      
+      server.once('error', (error) => {
+        if (error.code === 'EADDRINUSE' && attempts < maxAttempts) {
+          // 端口被占用，尝试下一个
+          tryPort(currentPort + 1);
+        } else if (error.code === 'EADDRINUSE') {
+          reject(new Error(`无法找到可用端口（尝试了 ${port} - ${currentPort}）`));
+        } else {
+          reject(error);
+        }
+      });
+      
+      server.once('listening', () => {
+        resolve(currentPort);
+      });
+      
+      server.listen(currentPort);
+    };
+    
+    tryPort(port);
   });
+}
+
+// 启动服务器
+async function startServer() {
+  const ip = getLocalIP();
+  const server = createHttpServer();
   
-  // 启动 HTTP 服务器
-  server.listen(PORT);
+  try {
+    const actualPort = await tryListen(server, getPreferredPort());
+    PORT = actualPort; // 更新全局端口变量
+    
+    showStartupInfo(ip, actualPort);
+    setupWebSocket(server);
+  } catch (error) {
+    console.error(`\n❌ 启动失败: ${error.message}\n`);
+    process.exit(1);
+  }
 }
 
 // 检查依赖
